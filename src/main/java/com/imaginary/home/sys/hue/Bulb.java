@@ -14,7 +14,7 @@
  *  enStratus Networks Inc.
  * ====================================================================
  */
-package com.imaginary.hue;
+package com.imaginary.home.sys.hue;
 
 import org.apache.log4j.Logger;
 import org.dasein.util.uom.time.TimePeriod;

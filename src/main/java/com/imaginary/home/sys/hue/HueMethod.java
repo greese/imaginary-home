@@ -14,7 +14,7 @@
  *  enStratus Networks Inc.
  * ====================================================================
  */
-package com.imaginary.hue;
+package com.imaginary.home.sys.hue;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;

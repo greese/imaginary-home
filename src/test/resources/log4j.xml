@@ -63,7 +63,7 @@
         <appender-ref ref="ASYNCIMG" />
     </category>
 
-    <category name="com.imaginary.hue.test">
+    <category name="com.imaginary.home.sys.hue.test">
         <priority value="DEBUG" />
         <appender-ref ref="ASYNCUNIT" />
     </category>

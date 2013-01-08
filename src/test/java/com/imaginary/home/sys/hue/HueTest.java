@@ -14,7 +14,7 @@
  *  enStratus Networks Inc.
  * ====================================================================
  */
-package com.imaginary.hue;
+package com.imaginary.home.sys.hue;
 
 import junit.framework.Assert;
 import org.apache.log4j.Logger;
@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.concurrent.Future;
 
 public class HueTest {
-    static private final Logger logger = Logger.getLogger("com.imaginary.hue.test");
+    static private final Logger logger = Logger.getLogger("com.imaginary.home.sys.hue.test");
 
     private Iterable<Bulb> bulbList;
 

@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.imaginary</groupId>
-    <artifactId>hue</artifactId>
+    <artifactId>imaginary-home</artifactId>
     <version>2013.01-SNAPSHOT</version>
 
     <name>Imaginary Hue Control</name>
