@@ -1,7 +1,7 @@
 /**
  * ========= CONFIDENTIAL =========
  *
- * Copyright (C) 2013 enStratus Networks Inc - ALL RIGHTS RESERVED
+ * Copyright (C) 2013 George Reese - ALL RIGHTS RESERVED
  *
  * ====================================================================
  *  NOTICE: All information contained herein is, and remains the

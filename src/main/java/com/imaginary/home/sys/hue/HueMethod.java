@@ -1,7 +1,7 @@
 /**
  * ========= CONFIDENTIAL =========
  *
- * Copyright (C) 2013 enStratus Networks Inc - ALL RIGHTS RESERVED
+ * Copyright (C) 2013 George Reese - ALL RIGHTS RESERVED
  *
  * ====================================================================
  *  NOTICE: All information contained herein is, and remains the
@@ -64,11 +64,11 @@ public class HueMethod {
         }
         if( wire.isDebugEnabled() ) {
             wire.debug("");
-            wire.debug(">>> [DELETE (" + (new Date()) + ")] -> " + hue.getEndpoint() + resource);
+            wire.debug(">>> [DELETE (" + (new Date()) + ")] -> " + hue.getAPIEndpoint() + resource);
         }
         try {
             HttpClient client = getClient();
-            HttpDelete method = new HttpDelete(hue.getEndpoint() + resource);
+            HttpDelete method = new HttpDelete(hue.getAPIEndpoint() + resource);
 
             method.addHeader("Content-Type", "application/json");
             if( wire.isDebugEnabled() ) {
@@ -137,14 +137,14 @@ public class HueMethod {
                 std.trace("exit - " + HueMethod.class.getName() + ".delete()");
             }
             if( wire.isDebugEnabled() ) {
-                wire.debug("<<< [DELETE (" + (new Date()) + ")] -> " + hue.getEndpoint() + resource + " <--------------------------------------------------------------------------------------");
+                wire.debug("<<< [DELETE (" + (new Date()) + ")] -> " + hue.getAPIEndpoint() + resource + " <--------------------------------------------------------------------------------------");
                 wire.debug("");
             }
         }
     }
 
     protected @Nonnull HttpClient getClient() {
-        boolean ssl = hue.getEndpoint().startsWith("https");
+        boolean ssl = hue.getAPIEndpoint().startsWith("https");
         HttpParams params = new BasicHttpParams();
 
         HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
@@ -179,11 +179,11 @@ public class HueMethod {
         }
         if( wire.isDebugEnabled() ) {
             wire.debug("");
-            wire.debug(">>> [GET (" + (new Date()) + ")] -> " + hue.getEndpoint() + resource);
+            wire.debug(">>> [GET (" + (new Date()) + ")] -> " + hue.getAPIEndpoint() + resource);
         }
         try {
             HttpClient client = getClient();
-            HttpGet method = new HttpGet(hue.getEndpoint() + resource);
+            HttpGet method = new HttpGet(hue.getAPIEndpoint() + resource);
 
             method.addHeader("Content-Type", "application/json");
 
@@ -273,7 +273,7 @@ public class HueMethod {
                 std.trace("exit - " + HueMethod.class.getName() + ".get()");
             }
             if( wire.isDebugEnabled() ) {
-                wire.debug("<<< [GET (" + (new Date()) + ")] -> " + hue.getEndpoint() + resource + " <--------------------------------------------------------------------------------------");
+                wire.debug("<<< [GET (" + (new Date()) + ")] -> " + hue.getAPIEndpoint() + resource + " <--------------------------------------------------------------------------------------");
                 wire.debug("");
             }
         }
@@ -288,11 +288,11 @@ public class HueMethod {
         }
         if( wire.isDebugEnabled() ) {
             wire.debug("");
-            wire.debug(">>> [POST (" + (new Date()) + ")] -> " + hue.getEndpoint() + resource);
+            wire.debug(">>> [POST (" + (new Date()) + ")] -> " + hue.getAPIEndpoint() + resource);
         }
         try {
             HttpClient client = getClient();
-            HttpPost method = new HttpPost(hue.getEndpoint() + resource);
+            HttpPost method = new HttpPost(hue.getAPIEndpoint() + resource);
 
             method.addHeader("Content-Type", "application/json");
 
@@ -394,7 +394,7 @@ public class HueMethod {
                 std.trace("exit - " + HueMethod.class.getName() + ".post()");
             }
             if( wire.isDebugEnabled() ) {
-                wire.debug("<<< [POST (" + (new Date()) + ")] -> " + hue.getEndpoint() + resource + " <--------------------------------------------------------------------------------------");
+                wire.debug("<<< [POST (" + (new Date()) + ")] -> " + hue.getAPIEndpoint() + resource + " <--------------------------------------------------------------------------------------");
                 wire.debug("");
             }
         }
@@ -409,11 +409,11 @@ public class HueMethod {
         }
         if( wire.isDebugEnabled() ) {
             wire.debug("");
-            wire.debug(">>> [PUT (" + (new Date()) + ")] -> " + hue.getEndpoint() + resource);
+            wire.debug(">>> [PUT (" + (new Date()) + ")] -> " + hue.getAPIEndpoint() + resource);
         }
         try {
             HttpClient client = getClient();
-            HttpPut method = new HttpPut(hue.getEndpoint() + resource);
+            HttpPut method = new HttpPut(hue.getAPIEndpoint() + resource);
 
             method.addHeader("Content-Type", "application/json");
 
@@ -523,7 +523,7 @@ public class HueMethod {
                 std.trace("exit - " + HueMethod.class.getName() + ".put()");
             }
             if( wire.isDebugEnabled() ) {
-                wire.debug("<<< [PUT (" + (new Date()) + ")] -> " + hue.getEndpoint() + resource + " <--------------------------------------------------------------------------------------");
+                wire.debug("<<< [PUT (" + (new Date()) + ")] -> " + hue.getAPIEndpoint() + resource + " <--------------------------------------------------------------------------------------");
                 wire.debug("");
             }
         }

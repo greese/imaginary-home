@@ -14,22 +14,12 @@
  *  enStratus Networks Inc.
  * ====================================================================
  */
-package com.imaginary.home;
+package com.imaginary.home.lighting;
 
-import com.imaginary.home.lighting.LightingService;
+import javax.annotation.Nonnull;
 
-import java.util.Properties;
+public interface LightingService {
+    public @Nonnull String getName();
 
-public interface ProgrammableSystem {
-    public String getAPIEndpoint();
-
-    public Properties getAuthenticationProperties();
-
-    public Properties getCustomProperties();
-
-    public LightingService getLightingService();
-
-    public String getName();
-
-    public String getVendor();
+    public Iterable<ColorMode> listNativeColorModes();
 }

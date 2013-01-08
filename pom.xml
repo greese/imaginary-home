@@ -196,13 +196,13 @@
         <developer>
             <name>George Reese</name>
             <id>georgereese</id>
-            <email>george.reese -at- enstratus -dot- com</email>
+            <email>george.reese -at- imaginary -dot- com</email>
             <organization>enStratus</organization>
             <roles>
                 <role>Java Developer</role>
                 <role>PMC</role>
             </roles>
-            <url>http://www.enstratus.com</url>
+            <url>http://www.imaginary.com</url>
             <timezone>-6</timezone>
         </developer>
     </developers>

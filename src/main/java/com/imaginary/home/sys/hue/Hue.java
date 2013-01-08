@@ -1,7 +1,7 @@
 /**
  * ========= CONFIDENTIAL =========
  *
- * Copyright (C) 2013 enStratus Networks Inc - ALL RIGHTS RESERVED
+ * Copyright (C) 2013 George Reese - ALL RIGHTS RESERVED
  *
  * ====================================================================
  *  NOTICE: All information contained herein is, and remains the
@@ -16,18 +16,21 @@
  */
 package com.imaginary.home.sys.hue;
 
+import com.imaginary.home.lighting.LightingService;
+import com.imaginary.home.ProgrammableSystem;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class Hue {
+public class Hue implements ProgrammableSystem {
     static public final ExecutorService executorService = Executors.newCachedThreadPool();
 
     static private @Nonnull String getLastItem(@Nonnull String name) {
@@ -82,16 +85,38 @@ public class Hue {
         return accessKey;
     }
 
+    @Override
+    public @Nonnull String getAPIEndpoint() {
+        return endpoint;
+    }
+
+    @Override
+    public Properties getAuthenticationProperties() {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
     public @Nonnull Properties getCustomProperties() {
         return customProperties;
     }
 
-    public @Nonnull String getEndpoint() {
-        return endpoint;
-    }
 
     public @Nonnull String getIpAddress() {
         return ipAddress;
+    }
+
+    @Override
+    public @Nullable LightingService getLightingService() {
+        return null;
+    }
+
+    @Override
+    public String getName() {
+        return "Hue";
+    }
+
+    @Override
+    public String getVendor() {
+        return "Philips";
     }
 
     public Iterable<Bulb> listBulbs() throws HueException {
