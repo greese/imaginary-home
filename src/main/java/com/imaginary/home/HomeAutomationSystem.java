@@ -17,18 +17,20 @@ package com.imaginary.home;
 
 import com.imaginary.home.lighting.LightingService;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Properties;
 
 public interface HomeAutomationSystem {
-    public String getAPIEndpoint();
+    public @Nonnull String getAPIEndpoint();
 
-    public Properties getAuthenticationProperties();
+    public @Nonnull Properties getAuthenticationProperties();
 
-    public Properties getCustomProperties();
+    public @Nonnull Properties getCustomProperties();
 
-    public LightingService getLightingService();
+    public @Nullable LightingService getLightingService();
 
-    public String getName();
+    public @Nonnull String getName();
 
-    public String getVendor();
+    public @Nonnull String getVendor();
 }

@@ -17,6 +17,8 @@ package com.imaginary.home.sys.hue;
 
 import com.imaginary.home.CommunicationException;
 import com.imaginary.home.HomeAutomationSystem;
+import com.imaginary.home.lighting.ColorMode;
+import com.imaginary.home.lighting.Lightbulb;
 import com.imaginary.home.lighting.LightingService;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
@@ -32,7 +34,7 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class Hue implements HomeAutomationSystem {
+public class Hue implements HomeAutomationSystem, LightingService {
     static public final ExecutorService executorService = Executors.newCachedThreadPool();
 
     static private @Nonnull String getLastItem(@Nonnull String name) {
@@ -88,17 +90,13 @@ public class Hue implements HomeAutomationSystem {
         }
     }
 
-    public @Nonnull String getAccessKey() {
-        return accessKey;
-    }
-
     @Override
     public @Nonnull String getAPIEndpoint() {
         return endpoint;
     }
 
     @Override
-    public Properties getAuthenticationProperties() {
+    public @Nonnull Properties getAuthenticationProperties() {
         Properties p = new Properties();
 
         p.put("accessKey", accessKey);
@@ -109,14 +107,45 @@ public class Hue implements HomeAutomationSystem {
         return customProperties;
     }
 
-
-    public @Nonnull String getIpAddress() {
-        return ipAddress;
+    @Override
+    public @Nullable LightingService getLightingService() {
+        return this;
     }
 
     @Override
-    public @Nullable LightingService getLightingService() {
-        return null;
+    public @Nonnull String getName() {
+        return "Hue";
+    }
+
+    @Override
+    public @Nonnull String getVendor() {
+        return "Philips";
+    }
+
+    @Override
+    public @Nonnull Iterable<Lightbulb> listBulbs() throws CommunicationException {
+        HueMethod method = new HueMethod(this);
+
+        JSONObject list = method.get("lights");
+
+        if( list == null ) {
+            return Collections.emptyList();
+        }
+        ArrayList<Lightbulb> matches = new ArrayList<Lightbulb>();
+
+        for( String id : JSONObject.getNames(list) ) {
+            try {
+                JSONObject item = list.getJSONObject(id);
+                String name = (item.has("name") ? item.getString("name") : id);
+
+
+                matches.add(new HueBulb(this, id, name));
+            }
+            catch( JSONException e ) {
+                throw new HueException(e);
+            }
+        }
+        return matches;
     }
 
     private String generateKey() {
@@ -145,38 +174,13 @@ public class Hue implements HomeAutomationSystem {
     }
 
     @Override
-    public String getName() {
-        return "Hue";
-    }
+    public @Nonnull Iterable<ColorMode> listNativeColorModes() {
+        ArrayList<ColorMode> modes = new ArrayList<ColorMode>();
 
-    @Override
-    public String getVendor() {
-        return "Philips";
-    }
-
-    public Iterable<HueBulb> listBulbs() throws HueException {
-        HueMethod method = new HueMethod(this);
-
-        JSONObject list = method.get("lights");
-
-        if( list == null ) {
-            return Collections.emptyList();
-        }
-        ArrayList<HueBulb> matches = new ArrayList<HueBulb>();
-
-        for( String id : JSONObject.getNames(list) ) {
-            try {
-                JSONObject item = list.getJSONObject(id);
-                String name = (item.has("name") ? item.getString("name") : id);
-
-
-                matches.add(new HueBulb(this, id, name));
-            }
-            catch( JSONException e ) {
-                throw new HueException(e);
-            }
-        }
-        return matches;
+        modes.add(ColorMode.CIEXYZ);
+        modes.add(ColorMode.CT);
+        modes.add(ColorMode.HSV);
+        return modes;
     }
 
     public Properties pair(String applicationName) throws CommunicationException {

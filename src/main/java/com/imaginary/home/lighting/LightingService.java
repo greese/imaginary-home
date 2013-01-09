@@ -15,10 +15,14 @@
  */
 package com.imaginary.home.lighting;
 
+import com.imaginary.home.CommunicationException;
+
 import javax.annotation.Nonnull;
 
 public interface LightingService {
     public @Nonnull String getName();
+
+    public Iterable<Lightbulb> listBulbs() throws CommunicationException;
 
     public Iterable<ColorMode> listNativeColorModes();
 }
