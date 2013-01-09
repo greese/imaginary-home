@@ -20,7 +20,7 @@ import com.imaginary.home.lighting.LightingService;
 
 import java.util.Properties;
 
-public interface ProgrammableSystem {
+public interface HomeAutomationSystem {
     public String getAPIEndpoint();
 
     public Properties getAuthenticationProperties();

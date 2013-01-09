@@ -50,6 +50,7 @@ import java.util.Properties;
 public class HueMethod {
     private Hue    hue;
 
+    @SuppressWarnings("UnusedDeclaration")
     private HueMethod() { }
 
     public HueMethod(Hue hue) {

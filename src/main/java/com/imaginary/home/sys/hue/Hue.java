@@ -17,8 +17,8 @@
 package com.imaginary.home.sys.hue;
 
 import com.imaginary.home.CommunicationException;
+import com.imaginary.home.HomeAutomationSystem;
 import com.imaginary.home.lighting.LightingService;
-import com.imaginary.home.ProgrammableSystem;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -33,7 +33,7 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class Hue implements ProgrammableSystem {
+public class Hue implements HomeAutomationSystem {
     static public final ExecutorService executorService = Executors.newCachedThreadPool();
 
     static private @Nonnull String getLastItem(@Nonnull String name) {
@@ -155,7 +155,7 @@ public class Hue implements ProgrammableSystem {
         return "Philips";
     }
 
-    public Iterable<Bulb> listBulbs() throws HueException {
+    public Iterable<HueBulb> listBulbs() throws HueException {
         HueMethod method = new HueMethod(this);
 
         JSONObject list = method.get("lights");
@@ -163,7 +163,7 @@ public class Hue implements ProgrammableSystem {
         if( list == null ) {
             return Collections.emptyList();
         }
-        ArrayList<Bulb> matches = new ArrayList<Bulb>();
+        ArrayList<HueBulb> matches = new ArrayList<HueBulb>();
 
         for( String id : JSONObject.getNames(list) ) {
             try {
@@ -171,7 +171,7 @@ public class Hue implements ProgrammableSystem {
                 String name = (item.has("name") ? item.getString("name") : id);
 
 
-                matches.add(new Bulb(this, id, name));
+                matches.add(new HueBulb(this, id, name));
             }
             catch( JSONException e ) {
                 throw new HueException(e);

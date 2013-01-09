@@ -123,6 +123,8 @@ public interface Lightbulb {
 
     public @Nonnull ColorMode getColorMode() throws CommunicationException;
 
+    public @Nullable String getModel() throws CommunicationException;
+
     public @Nonnull String getName() throws CommunicationException;
 
     public @Nonnull String getProviderId();

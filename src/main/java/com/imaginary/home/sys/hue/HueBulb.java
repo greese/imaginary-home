@@ -34,14 +34,14 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
-public class Bulb implements Lightbulb {
-    static public final Logger logger = Hue.getLogger(Bulb.class);
+public class HueBulb implements Lightbulb {
+    static public final Logger logger = Hue.getLogger(HueBulb.class);
 
     private String bulbId;
     private Hue    hue;
     private String name;
 
-    public Bulb(@Nonnull Hue hue, @Nonnull String id, @Nonnull String name) {
+    public HueBulb(@Nonnull Hue hue, @Nonnull String id, @Nonnull String name) {
         bulbId = id;
         this.hue = hue;
         this.name = name;
@@ -405,6 +405,24 @@ public class Bulb implements Lightbulb {
                 return ColorMode.CIEXYZ;
             }
             return ColorMode.CIEXYZ;
+        }
+        catch( JSONException e ) {
+            throw new HueException(e);
+        }
+    }
+
+    @Override
+    public @Nullable String getModel() throws CommunicationException {
+        String resource = "lights/" + bulbId;
+        HueMethod method = new HueMethod(hue);
+
+        JSONObject json = method.get(resource);
+
+        if( json == null || !json.has("modelid") ) {
+            return null;
+        }
+        try {
+            return json.getString("modelid");
         }
         catch( JSONException e ) {
             throw new HueException(e);

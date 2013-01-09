@@ -37,7 +37,7 @@ public class HueTest {
     static public final Color GREEN = Color.getRGB255(0,255,0);
     static public final Color BLUE  = Color.getRGB255(0,0,255);
 
-    private Iterable<Bulb> bulbList;
+    private Iterable<HueBulb> bulbList;
 
     private Hue getHue() {
         return new Hue(System.getProperty("ip"), System.getProperty("accessKey"));
@@ -52,7 +52,7 @@ public class HueTest {
     public void listBulbs() throws CommunicationException {
         int count = 0;
 
-        for( Bulb bulb : bulbList ) {
+        for( HueBulb bulb : bulbList ) {
             out("Bulb: " + bulb);
             count++;
         }
@@ -62,13 +62,14 @@ public class HueTest {
 
     @Test
     public void bulbInfo() throws CommunicationException {
-        Iterator<Bulb> it = bulbList.iterator();
+        Iterator<HueBulb> it = bulbList.iterator();
 
         if( it.hasNext() ) {
-            Bulb bulb = it.next();
+            HueBulb bulb = it.next();
 
             out("ID:                     " + bulb.getProviderId());
             out("Name:                   " + bulb.getName());
+            out("Model:                  " + bulb.getModel());
             out("On:                     " + bulb.isOn());
             out("Color mode:             " + bulb.getColorMode());
             out("Color:                  " + bulb.getColor());
@@ -84,7 +85,7 @@ public class HueTest {
     public void changeToBlue() throws CommunicationException {
         ArrayList<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
 
-        for( Bulb bulb : bulbList ) {
+        for( HueBulb bulb : bulbList ) {
             results.add(bulb.changeColor(BLUE, null));
         }
 
@@ -109,7 +110,7 @@ public class HueTest {
     public void flipOff() throws CommunicationException {
         ArrayList<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
 
-        for( Bulb bulb : bulbList ) {
+        for( HueBulb bulb : bulbList ) {
             results.add(bulb.flipOff());
         }
 
@@ -135,7 +136,7 @@ public class HueTest {
         ArrayList<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
         TimePeriod<Minute> t = new TimePeriod<Minute>(1, TimePeriod.MINUTE);
 
-        for( Bulb bulb : bulbList ) {
+        for( HueBulb bulb : bulbList ) {
             results.add(bulb.fadeOn(t, 100f));
         }
 
@@ -161,7 +162,7 @@ public class HueTest {
         ArrayList<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
         TimePeriod<Minute> t = new TimePeriod<Minute>(1, TimePeriod.MINUTE);
 
-        for( Bulb bulb : bulbList ) {
+        for( HueBulb bulb : bulbList ) {
             results.add(bulb.fadeOff(t));
         }
 
@@ -186,7 +187,7 @@ public class HueTest {
     public void flipOn() throws CommunicationException {
         ArrayList<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
 
-        for( Bulb bulb : bulbList ) {
+        for( HueBulb bulb : bulbList ) {
             results.add(bulb.flipOn());
         }
 
@@ -212,7 +213,7 @@ public class HueTest {
         try {
             TimePeriod<Second> t = new TimePeriod<Second>(1, TimePeriod.SECOND);
 
-            for( Bulb bulb : bulbList ) {
+            for( HueBulb bulb : bulbList ) {
                 waitFor(bulb.fadeOn(t, 100f));
             }
         }
@@ -222,7 +223,7 @@ public class HueTest {
 
         ArrayList<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
 
-        for( Bulb bulb : bulbList ) {
+        for( HueBulb bulb : bulbList ) {
             results.add(bulb.changeWhite(500, 100f, null));
         }
 
@@ -247,7 +248,7 @@ public class HueTest {
     public void changeToRed() throws HueException {
         ArrayList<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
 
-        for( Bulb bulb : bulbList ) {
+        for( HueBulb bulb : bulbList ) {
             results.add(bulb.changeColor(RED, null));
         }
 
@@ -274,7 +275,7 @@ public class HueTest {
         TimePeriod<Minute> duration = new TimePeriod<Minute>(1, TimePeriod.MINUTE);
         TimePeriod<Second> interval = new TimePeriod<Second>(1, TimePeriod.SECOND);
 
-        for( Bulb bulb : bulbList ) {
+        for( HueBulb bulb : bulbList ) {
             results.add(bulb.strobe(interval, duration, RED, GREEN, BLUE));
         }
 
