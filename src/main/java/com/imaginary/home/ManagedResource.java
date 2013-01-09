@@ -15,25 +15,14 @@
  */
 package com.imaginary.home;
 
+
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
-public class CommunicationException extends Exception {
-    private int statusCode = 0;
+public interface ManagedResource {
+    public @Nullable String getModel() throws CommunicationException;
 
-    public CommunicationException(@Nonnull String msg) {
-        super(msg);
-    }
+    public @Nonnull String getName() throws CommunicationException;
 
-    public CommunicationException(@Nonnull Throwable cause) {
-        super(cause);
-    }
-
-    public CommunicationException(int statusCode, @Nonnull String msg) {
-        super(msg);
-        this.statusCode = statusCode;
-    }
-
-    public int getStatusCode() {
-        return statusCode;
-    }
+    public @Nonnull String getProviderId();
 }
