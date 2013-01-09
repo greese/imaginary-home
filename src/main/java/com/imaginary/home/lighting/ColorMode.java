@@ -17,5 +17,9 @@
 package com.imaginary.home.lighting;
 
 public enum ColorMode {
-    RGB, CIEXYZ, HSV
+    RGB, CIEXYZ, HSV, CT;
+
+    public boolean isColor() {
+        return !equals(CT);
+    }
 }

@@ -16,6 +16,10 @@
  */
 package com.imaginary.home.sys.hue;
 
+import com.imaginary.home.CommunicationException;
+import com.imaginary.home.lighting.Color;
+import com.imaginary.home.lighting.ColorMode;
+import com.imaginary.home.lighting.Lightbulb;
 import org.apache.log4j.Logger;
 import org.dasein.util.uom.time.TimePeriod;
 import org.json.JSONArray;
@@ -25,14 +29,12 @@ import org.json.JSONObject;
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.awt.*;
-import java.awt.color.ColorSpace;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
-public class Bulb {
+public class Bulb implements Lightbulb {
     static public final Logger logger = Hue.getLogger(Bulb.class);
 
     private String bulbId;
@@ -45,100 +47,84 @@ public class Bulb {
         this.name = name;
     }
 
-    public @Nonnull Future<Boolean> changeColor(final @Nonnull ColorSpace fromColorSpace, final @Nonnull float[] nativeValues, final @Nullable TimePeriod<?> transitionTime) {
+    @Override
+    public @Nonnull Future<Boolean> changeColor(final @Nonnull Color newColor, final @Nullable TimePeriod<?> transitionTime) {
         return Hue.executorService.submit(new Callable<Boolean>() {
             @Override
             public Boolean call() throws HueException {
                 long millis = (transitionTime == null ? 0L : transitionTime.convertTo(TimePeriod.MILLISECOND).longValue());
 
-                return changeColor(fromColorSpace, nativeValues, millis);
+                return changeColor(newColor, millis);
             }
         });
     }
 
-    private boolean changeColor(@Nonnull ColorSpace fromColorSpace, @Nonnull float[] nativeValues, @Nonnegative long millis) throws HueException {
-        if( fromColorSpace.getType() == ColorSpace.TYPE_HSV ) {
-            Map<String,Object> state = new HashMap<String,Object>();
+    @Override
+    public @Nonnull Future<Boolean> changeColorCIEXYZ(@Nonnegative float x, @Nonnegative float y, @Nullable TimePeriod<?> transitionTime) throws CommunicationException {
+        return changeColor(new Color(ColorMode.CIEXYZ, x, y, 1.0f-(x+y)), transitionTime);
+    }
 
-            state.put("on", true);
-            state.put("hue", 182.04 * nativeValues[0]);
-            state.put("sat", nativeValues[1] * 254);
-            if( millis >= 100 ) {
-                state.put("transitiontime", millis/100);
+    @Override
+    public @Nonnull Future<Boolean> changeColorHSV(@Nonnegative float hue, @Nonnegative float saturation, @Nullable TimePeriod<?> transitionTime) throws CommunicationException {
+        return changeColor(new Color(ColorMode.HSV, hue, saturation), transitionTime);
+    }
+
+    @Override
+    public @Nonnull Future<Boolean> changeColorRGB(@Nonnegative float red, @Nonnegative float green, @Nonnegative float blue, @Nullable TimePeriod<?> transitionTime) throws CommunicationException {
+        return changeColor(new Color(ColorMode.RGB, red, green, blue), transitionTime);
+    }
+
+    private boolean changeColor(@Nonnull Color newColor, @Nonnegative long millis) throws HueException {
+        Map<String,Object> state = new HashMap<String,Object>();
+        String resource = "lights/" + bulbId + "/state";
+        float[] components = newColor.getComponents();
+
+        if( millis >= 100 ) {
+            state.put("transitiontime", millis/100);
+        }
+        state.put("on", true);
+        if( newColor.getColorMode().equals(ColorMode.HSV) ) {
+            float h = components[0];
+            int s = (int)components[1];
+
+            if( h < 0 ) {
+                h = 0;
+            }
+            else if( h > 360 ) {
+                h = 360;
+            }
+            if( s < 0 ) {
+                s = 0;
+            }
+            else if( s > 100 ) {
+                s = 100;
             }
 
-            String resource = "lights/" + bulbId + "/state";
-            HueMethod method = new HueMethod(hue);
-
-            method.put(resource, new JSONObject(state));
+            state.put("hue", (int)(182.04 * h));
+            state.put("sat", (s * 254)/100);
+        }
+        else if( newColor.getColorMode().equals(ColorMode.CT) ) {
+            state.put("ct", (int)components[0]);
+            state.put("bri", (int)(components[1]*254/100));
         }
         else {
-            Map<String,Object> state = new HashMap<String,Object>();
-            float[] tmp = fromColorSpace.toCIEXYZ(nativeValues);
-
-            state.put("on", true);
-            state.put("xy", new float[] { tmp[0], tmp[1] });
-            if( millis >= 100 ) {
-                state.put("transitiontime", millis/100);
+            if( !newColor.getColorMode().equals(ColorMode.CIEXYZ) ) {
+                newColor = newColor.convertToCIEXYZ();
+                components = newColor.getComponents();
             }
-
-            String resource = "lights/" + bulbId + "/state";
-            HueMethod method = new HueMethod(hue);
-
-            method.put(resource, new JSONObject(state));
+            state.put("xy", new float[] { components[0], components[1] });
         }
+        HueMethod method = new HueMethod(hue);
+
+        method.put(resource, new JSONObject(state));
         return true;
     }
 
-    private @Nonnull Future<Boolean> changeColorHSV(final @Nonnegative float hueValue, final @Nonnegative int saturation, final @Nullable TimePeriod<?> transitionTime) throws HueException {
+    @Override
+    public @Nonnull Future<Boolean> changeWhite(final @Nonnegative int warmthInMireds, final @Nonnegative float brightness, final @Nullable TimePeriod<?> transitionTime) {
         return Hue.executorService.submit(new Callable<Boolean>() {
             @Override
             public Boolean call() throws HueException {
-                long millis = (transitionTime == null ? 0L : transitionTime.convertTo(TimePeriod.MILLISECOND).longValue());
-                Map<String,Object> state = new HashMap<String,Object>();
-                float h = hueValue;
-                int s = saturation;
-
-                if( h < 0 ) {
-                    h = 0;
-                }
-                else if( h > 360 ) {
-                    h = 360;
-                }
-                if( s < 0 ) {
-                    s = 0;
-                }
-                else if( s > 100 ) {
-                    s = 100;
-                }
-                state.put("on", true);
-                state.put("hue", 182.04 * h);
-                state.put("sat", s * 254);
-                if( millis >= 100 ) {
-                    state.put("transitiontime", millis/100);
-                }
-
-                String resource = "lights/" + bulbId + "/state";
-                HueMethod method = new HueMethod(hue);
-
-                method.put(resource, new JSONObject(state));
-                return true;
-            }
-        });
-    }
-
-    public @Nonnull Future<Boolean> changeColorRGB(@Nonnegative int r, @Nonnegative int g, @Nonnegative int b, @Nullable TimePeriod<?> transitionTime) throws HueException {
-        return changeColor(ColorSpace.getInstance(ColorSpace.CS_sRGB), new float[] { ((float)r)/255f, ((float)g)/255f, ((float)b)/255f }, transitionTime);
-    }
-
-    public @Nonnull Future<Boolean> changeColorXY(@Nonnegative float x, @Nonnegative float y, @Nullable TimePeriod<?> transitionTime) throws HueException {
-        return changeColor(ColorSpace.getInstance(ColorSpace.CS_CIEXYZ), new float[] { x, y }, transitionTime);
-    }
-
-    public @Nonnull Future<Integer> changeWhite(final @Nonnegative int warmthInMireds, final @Nonnegative int brightness, final @Nullable TimePeriod<?> transitionTime) {
-        return Hue.executorService.submit(new Callable<Integer>() {
-            @Override
-            public Integer call() throws HueException {
                 long millis = (transitionTime == null ? 0L : transitionTime.convertTo(TimePeriod.MILLISECOND).longValue());
 
                 return changeWhite(warmthInMireds, brightness, millis);
@@ -146,125 +132,48 @@ public class Bulb {
         });
     }
 
-    private int changeWhite(int warmth, int brightness, @Nonnegative long millis) throws HueException {
-        Map<String,Object> state = new HashMap<String,Object>();
-
-        state.put("on", true);
-        state.put("ct", warmth);
-        state.put("bri", brightness);
-        if( millis >= 100 ) {
-            state.put("transitiontime", millis/100);
-        }
-
-        String resource = "lights/" + bulbId + "/state";
-        HueMethod method = new HueMethod(hue);
-
-        method.put(resource, new JSONObject(state));
-        return getWarmth();
+    private boolean changeWhite(int warmth, float brightness, @Nonnegative long millis) throws HueException {
+        return changeColor(new Color(ColorMode.CT, warmth, brightness), millis);
     }
 
-    private int[] convertHSVToRGB(JSONObject state) throws HueException {
-        try {
-            float h = (float)state.getDouble("hue");
-            int s = state.getInt("sat");
-
-            Color c = new Color(Color.HSBtoRGB(h/65535f, (s*100f)/254f, 1f));
-
-            return new int[] { c.getRed(), c.getGreen(), c.getBlue() };
-        }
-        catch( JSONException e ) {
-            throw new HueException(e);
-        }
-    }
-
-    private float[] convertHSVToXY(JSONObject state) throws HueException {
-        try {
-            float h = (float)state.getDouble("hue");
-            int s = state.getInt("sat");
-
-            // TODO: convert to XY
-            return new float[] { h, s};
-        }
-        catch( JSONException e ) {
-            throw new HueException(e);
-        }
-    }
-
-    private int[] convertXYToRGB(JSONObject state) throws HueException {
-        try {
-            JSONArray arr = state.getJSONArray("xy");
-            ColorSpace cs = ColorSpace.getInstance(ColorSpace.CS_CIEXYZ);
-            float x = (float)arr.getDouble(0);
-            float y = (float)arr.getDouble(1);
-            float z = 1.0f - (x+y);
-
-            float[] tmp = cs.toRGB(new float[] { x, y, z });
-            return new int[] { (int)tmp[0]*255, (int)tmp[1]*255, (int)tmp[2]*255 };
-        }
-        catch( JSONException e ) {
-            throw new HueException(e);
-        }
-    }
-
-    private float[] convertXYToHSV(JSONObject state) throws HueException {
-        try {
-            JSONArray arr = state.getJSONArray("xy");
-            float x = (float)arr.getDouble(0);
-            float y = (float)arr.getDouble(1);
-
-            // TODO: convert to HSV
-            return new float[] { x, y};
-        }
-        catch( JSONException e ) {
-            throw new HueException(e);
-        }
-    }
-
-    public @Nonnull Future<Integer> fadeOff(final @Nonnull  TimePeriod<?> transitionTime) throws HueException {
-        return Hue.executorService.submit(new Callable<Integer>() {
+    @Override
+    public @Nonnull Future<Boolean> fadeOff(final @Nonnull  TimePeriod<?> transitionTime) throws CommunicationException {
+        return Hue.executorService.submit(new Callable<Boolean>() {
             @Override
-            public Integer call() throws HueException {
+            public Boolean call() throws CommunicationException {
                 return fade(transitionTime, 0);
             }
         });
     }
 
-    public @Nonnull Future<Boolean> flipOff() {
+    @Override
+    public @Nonnull Future<Boolean> fadeOn(@Nonnull TimePeriod<?> transitionTime) throws CommunicationException {
+        return fadeOn(transitionTime, getBrightness());
+    }
+
+    @Override
+    public @Nonnull Future<Boolean> fadeOn(final @Nonnull TimePeriod<?> transitionTime, final @Nonnegative float targetBrightness) {
         return Hue.executorService.submit(new Callable<Boolean>() {
             @Override
-            public Boolean call() throws HueException {
-                flip(false);
-                return true;
+            public Boolean call() throws CommunicationException {
+                return fade(transitionTime, (int)((targetBrightness*254)/100));
             }
         });
     }
 
-    public void fadeOn(@Nonnull TimePeriod<?> transitionTime) throws HueException {
-        fadeOn(transitionTime, getBrightness());
-    }
-
-    public @Nonnull Future<Integer> fadeOn(final @Nonnull TimePeriod<?> transitionTime, final @Nonnegative int targetBrightness) {
-        return Hue.executorService.submit(new Callable<Integer>() {
-            @Override
-            public Integer call() throws HueException {
-                return fade(transitionTime, targetBrightness);
-            }
-        });
-    }
-
-    private @Nonnegative int fade(@Nonnull TimePeriod<?> transitionTime, @Nonnegative int targetBrightness) throws HueException {
+    private @Nonnegative boolean fade(@Nonnull TimePeriod<?> transitionTime, @Nonnegative int targetBrightness) throws CommunicationException {
         logger.debug("Fading to " + targetBrightness + " over " + transitionTime + " for " + bulbId);
         if( targetBrightness < 0 ) {
             targetBrightness = 0;
         }
-        int currentBrightness = getBrightness();
+        int currentBrightness = (int)((getBrightness()*254)/100);
         boolean on = isOn();
 
         if( (on && targetBrightness == currentBrightness) || (!on && targetBrightness == 0) ) {
             if( logger.isDebugEnabled() ) {
                 logger.debug("Nothing to do for " + bulbId);
             }
-            return getBrightness();
+            return false;
         }
         if( !on ) {
             logger.debug("Bulb is currently off");
@@ -364,27 +273,37 @@ public class Bulb {
             }
             flip(false);
         }
-        int brightness = getBrightness();
+        int brightness = (int)((getBrightness()*254)/100);
 
         if( logger.isDebugEnabled() ) {
             logger.debug(bulbId + ".brightness=" + brightness);
         }
-        return brightness;
+        return true;
     }
 
-    public @Nonnull Future<Boolean> flipOn() {
+    @Override
+    public @Nonnull Future<Boolean> flipOff() {
         return Hue.executorService.submit(new Callable<Boolean>() {
             @Override
-            public Boolean call() throws HueException {
-                flip(true);
-                return true;
+            public Boolean call() throws CommunicationException {
+                return flip(false);
             }
         });
     }
 
-    private void flip(boolean on) throws HueException {
+    @Override
+    public @Nonnull Future<Boolean> flipOn() throws CommunicationException {
+        return Hue.executorService.submit(new Callable<Boolean>() {
+            @Override
+            public Boolean call() throws CommunicationException {
+                return flip(true);
+            }
+        });
+    }
+
+    private boolean flip(boolean on) throws CommunicationException {
         if( isOn() == on ) {
-            return;
+            return false;
         }
         Map<String,Object> state = new HashMap<String,Object>();
 
@@ -393,9 +312,11 @@ public class Bulb {
         HueMethod method = new HueMethod(hue);
 
         method.put(resource, new JSONObject(state));
+        return true;
     }
 
-    public @Nonnegative int getBrightness() throws HueException {
+    @Override
+    public @Nonnegative float getBrightness() throws CommunicationException {
         String resource = "lights/" + bulbId;
         HueMethod method = new HueMethod(hue);
 
@@ -408,142 +329,100 @@ public class Bulb {
             JSONObject state = json.getJSONObject("state");
 
             if( !state.has("bri") ) {
-                return 0;
+                return 0f;
             }
-            return state.getInt("bri");
+            return ((float)state.getInt("bri") * 100f)/254;
         }
         catch( JSONException e ) {
             throw new HueException(e);
         }
     }
 
-    public @Nonnull String getBulbId() {
-        return bulbId;
-    }
-
-    public float[] getColorHSV() throws HueException {
+    @Override
+    public @Nonnull Color getColor() throws CommunicationException {
         String resource = "lights/" + bulbId;
         HueMethod method = new HueMethod(hue);
 
         JSONObject json = method.get(resource);
 
         if( json == null || !json.has("state") ) {
-            return new float[] { 360f, 100f };
+            return new Color(ColorMode.CIEXYZ, 0.4448f, 0.4066f);
         }
         try {
             JSONObject state = json.getJSONObject("state");
 
-            if( state.has("colormode") && state.getString("colormode").equalsIgnoreCase("xy") ) {
-                return convertXYToHSV(state);
-            }
-            else {
-                float h = (state.has("hue") ? (float)state.getDouble("hue")/182.04f : 360f);
-                int s = (state.has("sat") ? (state.getInt("sat")*100)/255 : 100);
+            if( state.has("colormode") ) {
+                String mode = state.getString("colormode");
 
-                return new float[] { h, s };
+
+                if( mode.equalsIgnoreCase("xy") ) {
+                    JSONArray arr = state.getJSONArray("xy");
+
+                    new Color(ColorMode.CIEXYZ, (float)arr.getDouble(0), (float)arr.getDouble(1));
+                }
+                else if( mode.equalsIgnoreCase("ct") ) {
+                    int warmth = (state.has("ct") ? state.getInt("ct") : 154);
+                    int brightness = (state.has("bri") ? state.getInt("bri") : 0);
+
+                    return new Color(ColorMode.CT, warmth, brightness/254);
+                }
+                else {
+                    float h = (state.has("hue") ? (float)state.getDouble("hue")/182.04f : 360f);
+                    int s = (state.has("sat") ? (state.getInt("sat")*100)/255 : 100);
+
+                    return new Color(ColorMode.HSV, h, s);
+                }
             }
+            return new Color(ColorMode.CIEXYZ, 0.4448f, 0.4066f);
         }
         catch( JSONException e ) {
             throw new HueException(e);
         }
     }
 
-    public int[] getColorRGB() throws HueException {
+    @Override
+    public @Nonnull ColorMode getColorMode() throws CommunicationException {
         String resource = "lights/" + bulbId;
         HueMethod method = new HueMethod(hue);
 
         JSONObject json = method.get(resource);
 
         if( json == null || !json.has("state") ) {
-            return new int[] { 255, 255, 255 };
+            return ColorMode.CIEXYZ;
         }
         try {
             JSONObject state = json.getJSONObject("state");
 
-            if( state.has("colormode") && state.getString("colormode").equalsIgnoreCase("hue") ) {
-                return convertHSVToRGB(state);
+            if( state.has("colormode") ) {
+                String mode = state.getString("colormode");
+
+                if( mode.equalsIgnoreCase("hue") ) {
+                    return ColorMode.HSV;
+                }
+                else if( mode.equalsIgnoreCase("ct") ) {
+                    return ColorMode.CT;
+                }
+                return ColorMode.CIEXYZ;
             }
-            else {
-                return convertXYToRGB(state);
-            }
+            return ColorMode.CIEXYZ;
         }
         catch( JSONException e ) {
             throw new HueException(e);
         }
     }
 
-    public float[] getColorXY() throws HueException {
-        String resource = "lights/" + bulbId;
-        HueMethod method = new HueMethod(hue);
-
-        JSONObject json = method.get(resource);
-
-        if( json == null || !json.has("state") ) {
-            return new float[] { 0.4448f, 0.4066f };
-        }
-        try {
-            JSONObject state = json.getJSONObject("state");
-
-            if( state.has("colormode") && state.getString("colormode").equalsIgnoreCase("hue") ) {
-                return convertHSVToXY(state);
-            }
-            else {
-                JSONArray arr = state.getJSONArray("xy");
-
-                return new float[] { (float)arr.getDouble(0), (float)arr.getDouble(1) };
-            }
-        }
-        catch( JSONException e ) {
-            throw new HueException(e);
-        }
-    }
-
+    @Override
     public @Nonnull String getName() {
         return name;
     }
 
-    public @Nonnegative int getWarmth() throws HueException {
-        String resource = "lights/" + bulbId;
-        HueMethod method = new HueMethod(hue);
-
-        JSONObject json = method.get(resource);
-
-        if( json == null || !json.has("state") ) {
-            return 0;
-        }
-        try {
-            JSONObject state = json.getJSONObject("state");
-
-            if( !state.has("ct") ) {
-                return 0;
-            }
-            return state.getInt("ct");
-        }
-        catch( JSONException e ) {
-            throw new HueException(e);
-        }
+    @Override
+    public @Nonnull String getProviderId() {
+        return bulbId;
     }
 
-    public boolean isColor() throws HueException {
-        String resource = "lights/" + bulbId;
-        HueMethod method = new HueMethod(hue);
-
-        JSONObject json = method.get(resource);
-
-        if( json == null || !json.has("state") ) {
-            return false;
-        }
-        try {
-            JSONObject state = json.getJSONObject("state");
-
-            return (state.has("colormode") && !state.getString("colormode").equalsIgnoreCase("ct"));
-        }
-        catch( JSONException e ) {
-            throw new HueException(e);
-        }
-    }
-
-    public boolean isOn() throws HueException {
+    @Override
+    public boolean isOn() throws CommunicationException {
         String resource = "lights/" + bulbId;
         HueMethod method = new HueMethod(hue);
 
@@ -562,7 +441,8 @@ public class Bulb {
         }
     }
 
-    public Future<Boolean> strobeHSV(final @Nonnull TimePeriod<?> interval, final @Nullable TimePeriod<?> duration, final @Nonnull float[] ... hsvValues) {
+    @Override
+    public Future<Boolean> strobe(final @Nonnull TimePeriod<?> interval, final @Nullable TimePeriod<?> duration, final @Nonnull Color ... colors) throws CommunicationException {
         return Hue.executorService.submit(new Callable<Boolean>() {
             @Override
             public Boolean call() throws HueException {
@@ -574,12 +454,12 @@ public class Bulb {
                     millis = 100;
                 }
                 while( end < 1 || System.currentTimeMillis() < end ) {
-                    float[] color = hsvValues[currentColor++];
+                    Color color = colors[currentColor++];
 
-                    if( currentColor >= hsvValues.length ) {
+                    if( currentColor >= colors.length ) {
                         currentColor = 0;
                     }
-                    changeColorHSV(color[0], (int)color[1], null);
+                    changeColor(color, null);
                     try { Thread.sleep(millis); }
                     catch( InterruptedException ignore ) { }
                 }
@@ -588,59 +468,18 @@ public class Bulb {
         });
     }
 
-    public Future<Boolean> strobeRGB(final @Nonnull TimePeriod<?> interval, final @Nullable TimePeriod<?> duration, final @Nonnull int[] ... rgbValues) {
-        return Hue.executorService.submit(new Callable<Boolean>() {
-            @Override
-            public Boolean call() throws HueException {
-                long end = (duration == null ? 0L : (System.currentTimeMillis() + duration.convertTo(TimePeriod.MILLISECOND).longValue()));
-                long millis = interval.convertTo(TimePeriod.MILLISECOND).longValue();
-                int currentColor = 0;
-
-                if( millis < 100 ) {
-                    millis = 100;
-                }
-                while( end < 1 || System.currentTimeMillis() < end ) {
-                    int[] color = rgbValues[currentColor++];
-
-                    if( currentColor >= rgbValues.length ) {
-                        currentColor = 0;
-                    }
-                    changeColorRGB(color[0], color[1], color[2], null);
-                    try { Thread.sleep(millis); }
-                    catch( InterruptedException ignore ) { }
-                }
-                return true;
-            }
-        });
+    @Override
+    public boolean supportsBrightnessChanges() {
+        return true;
     }
 
-    public Future<Boolean> strobeXY(final @Nonnull TimePeriod<?> interval, final @Nullable TimePeriod<?> duration, final @Nonnull float[] ... xyValues) {
-        return Hue.executorService.submit(new Callable<Boolean>() {
-            @Override
-            public Boolean call() throws HueException {
-                long end = (duration == null ? 0L : (System.currentTimeMillis() + duration.convertTo(TimePeriod.MILLISECOND).longValue()));
-                long millis = interval.convertTo(TimePeriod.MILLISECOND).longValue();
-                int currentColor = 0;
-
-                if( millis < 100 ) {
-                    millis = 100;
-                }
-                while( end < 1 || System.currentTimeMillis() < end ) {
-                    float[] color = xyValues[currentColor++];
-
-                    if( currentColor >= xyValues.length ) {
-                        currentColor = 0;
-                    }
-                    changeColorXY(color[0], color[1], null);
-                    try { Thread.sleep(millis); }
-                    catch( InterruptedException ignore ) { }
-                }
-                return true;
-            }
-        });
-    }
-
+    @Override
     public boolean supportsColor() {
+        return true;
+    }
+
+    @Override
+    public boolean supportsColorChanges() {
         return true;
     }
 

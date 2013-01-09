@@ -16,6 +16,8 @@
  */
 package com.imaginary.home.sys.hue;
 
+import com.imaginary.home.CommunicationException;
+import com.imaginary.home.lighting.Color;
 import junit.framework.Assert;
 import org.apache.log4j.Logger;
 import org.dasein.util.uom.time.Minute;
@@ -24,12 +26,16 @@ import org.dasein.util.uom.time.TimePeriod;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.concurrent.Future;
 
 public class HueTest {
     static private final Logger logger = Logger.getLogger("com.imaginary.home.sys.hue.test");
+
+    static public final Color RED   = Color.getRGB255(255,0,0);
+    static public final Color GREEN = Color.getRGB255(0,255,0);
+    static public final Color BLUE  = Color.getRGB255(0,0,255);
 
     private Iterable<Bulb> bulbList;
 
@@ -38,12 +44,12 @@ public class HueTest {
     }
 
     @Before
-    public void setUp() throws HueException {
+    public void setUp() throws CommunicationException {
         bulbList = getHue().listBulbs();
     }
 
     @Test
-    public void listBulbs() throws HueException {
+    public void listBulbs() throws CommunicationException {
         int count = 0;
 
         for( Bulb bulb : bulbList ) {
@@ -55,11 +61,31 @@ public class HueTest {
     }
 
     @Test
-    public void changeToBlue() throws HueException {
+    public void bulbInfo() throws CommunicationException {
+        Iterator<Bulb> it = bulbList.iterator();
+
+        if( it.hasNext() ) {
+            Bulb bulb = it.next();
+
+            out("ID:                     " + bulb.getProviderId());
+            out("Name:                   " + bulb.getName());
+            out("On:                     " + bulb.isOn());
+            out("Color mode:             " + bulb.getColorMode());
+            out("Color:                  " + bulb.getColor());
+            out("Brightness:             " + bulb.getBrightness() + "%");
+            out("Supports color:         " + bulb.supportsColor());
+            out("Supports color changes: " + bulb.supportsColorChanges());
+            return;
+        }
+        Assert.fail("Unable to test bulb info for lack of a bulb to test");
+    }
+
+    @Test
+    public void changeToBlue() throws CommunicationException {
         ArrayList<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
 
         for( Bulb bulb : bulbList ) {
-            results.add(bulb.changeColorRGB(0, 0, 255, null));
+            results.add(bulb.changeColor(BLUE, null));
         }
 
         boolean done;
@@ -77,15 +103,10 @@ public class HueTest {
         } while( !done );
         try { Thread.sleep(4000L); }
         catch( InterruptedException ignore ) { }
-
-        for( Bulb bulb : bulbList ) {
-            assertSimilar(bulb + " X is not properly blue", 0.1425f, bulb.getColorXY()[0]);
-            assertSimilar(bulb + " Y is not properly blue", 0.1425f, bulb.getColorXY()[1]);
-        }
     }
 
     @Test
-    public void flipOff() throws HueException {
+    public void flipOff() throws CommunicationException {
         ArrayList<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
 
         for( Bulb bulb : bulbList ) {
@@ -107,18 +128,15 @@ public class HueTest {
         } while( !done );
         try { Thread.sleep(4000L); }
         catch( InterruptedException ignore ) { }
-        for( Bulb bulb : bulbList ) {
-            Assert.assertFalse(bulb + " is still on", bulb.isOn());
-        }
     }
 
     @Test
-    public void fadeOn() throws HueException {
-        ArrayList<Future<Integer>> results = new ArrayList<Future<Integer>>();
+    public void fadeOn() throws CommunicationException {
+        ArrayList<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
         TimePeriod<Minute> t = new TimePeriod<Minute>(1, TimePeriod.MINUTE);
 
         for( Bulb bulb : bulbList ) {
-            results.add(bulb.fadeOn(t, 254));
+            results.add(bulb.fadeOn(t, 100f));
         }
 
         boolean done;
@@ -127,7 +145,7 @@ public class HueTest {
             done = true;
             try { Thread.sleep(1000L); }
             catch( InterruptedException ignore ) { }
-            for( Future<Integer> f : results ) {
+            for( Future<Boolean> f : results ) {
                 if( !f.isDone() ) {
                     done = false;
                     break;
@@ -136,15 +154,11 @@ public class HueTest {
         } while( !done );
         try { Thread.sleep(4000L); }
         catch( InterruptedException ignore ) { }
-        for( Bulb bulb : bulbList ) {
-            Assert.assertTrue(bulb + " is still off", bulb.isOn());
-            Assert.assertEquals(bulb + " has an invalid brightness", 254, bulb.getBrightness());
-        }
     }
 
     @Test
-    public void fadeOff() throws HueException {
-        ArrayList<Future<Integer>> results = new ArrayList<Future<Integer>>();
+    public void fadeOff() throws CommunicationException {
+        ArrayList<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
         TimePeriod<Minute> t = new TimePeriod<Minute>(1, TimePeriod.MINUTE);
 
         for( Bulb bulb : bulbList ) {
@@ -157,7 +171,7 @@ public class HueTest {
             done = true;
             try { Thread.sleep(1000L); }
             catch( InterruptedException ignore ) { }
-            for( Future<Integer> f : results ) {
+            for( Future<Boolean> f : results ) {
                 if( !f.isDone() ) {
                     done = false;
                     break;
@@ -166,16 +180,10 @@ public class HueTest {
         } while( !done );
         try { Thread.sleep(4000L); }
         catch( InterruptedException ignore ) { }
-        for( Bulb bulb : bulbList ) {
-            int brightness = bulb.getBrightness();
-
-            Assert.assertFalse(bulb + " is still on", bulb.isOn());
-            Assert.assertTrue(bulb + " has an invalid brightness: " + brightness, brightness <= 1);
-        }
     }
 
     @Test
-    public void flipOn() throws HueException {
+    public void flipOn() throws CommunicationException {
         ArrayList<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
 
         for( Bulb bulb : bulbList ) {
@@ -197,28 +205,25 @@ public class HueTest {
         } while( !done );
         try { Thread.sleep(4000L); }
         catch( InterruptedException ignore ) { }
-        for( Bulb bulb : bulbList ) {
-            Assert.assertTrue(bulb + " is still off", bulb.isOn());
-        }
     }
 
     @Test
-    public void changeToWhite() throws HueException {
+    public void changeToWhite() throws CommunicationException {
         try {
             TimePeriod<Second> t = new TimePeriod<Second>(1, TimePeriod.SECOND);
 
             for( Bulb bulb : bulbList ) {
-                waitFor(bulb.fadeOn(t, 254));
+                waitFor(bulb.fadeOn(t, 100f));
             }
         }
         catch( Throwable ignore ) {
             // ignore
         }
 
-        ArrayList<Future<Integer>> results = new ArrayList<Future<Integer>>();
+        ArrayList<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
 
         for( Bulb bulb : bulbList ) {
-            results.add(bulb.changeWhite(500, 254, null));
+            results.add(bulb.changeWhite(500, 100f, null));
         }
 
         boolean done;
@@ -227,7 +232,7 @@ public class HueTest {
             done = true;
             try { Thread.sleep(1000L); }
             catch( InterruptedException ignore ) { }
-            for( Future<Integer> f : results ) {
+            for( Future<Boolean> f : results ) {
                 if( !f.isDone() ) {
                     done = false;
                     break;
@@ -236,9 +241,6 @@ public class HueTest {
         } while( !done );
         try { Thread.sleep(4000L); }
         catch( InterruptedException ignore ) { }
-        for( Bulb bulb : bulbList ) {
-            Assert.assertEquals(bulb + " is not properly warm", 500, bulb.getWarmth());
-        }
     }
 
     @Test
@@ -246,7 +248,7 @@ public class HueTest {
         ArrayList<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
 
         for( Bulb bulb : bulbList ) {
-            results.add(bulb.changeColorRGB(255, 0, 0, null));
+            results.add(bulb.changeColor(RED, null));
         }
 
         boolean done;
@@ -264,20 +266,16 @@ public class HueTest {
         } while( !done );
         try { Thread.sleep(4000L); }
         catch( InterruptedException ignore ) { }
-        for( Bulb bulb : bulbList ) {
-            assertSimilar(bulb + " is not properly red", 0.4344f, bulb.getColorXY()[0]);
-            assertSimilar(bulb + " is not properly red", 0.2219f, bulb.getColorXY()[1]);
-        }
     }
 
     @Test
-    public void strobe() throws HueException {
+    public void strobe() throws CommunicationException {
         ArrayList<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
         TimePeriod<Minute> duration = new TimePeriod<Minute>(1, TimePeriod.MINUTE);
         TimePeriod<Second> interval = new TimePeriod<Second>(1, TimePeriod.SECOND);
 
         for( Bulb bulb : bulbList ) {
-            results.add(bulb.strobeRGB(interval, duration, new int[] { 255, 0, 0 }, new int[] { 0, 255, 0 }, new int[] { 0, 0, 255 }));
+            results.add(bulb.strobe(interval, duration, RED, GREEN, BLUE));
         }
 
         boolean done;
@@ -293,14 +291,6 @@ public class HueTest {
                 }
             }
         } while( !done );
-    }
-
-    private void assertSimilar(@Nonnull String message, float expected, float actual) {
-        float diff = expected - actual;
-
-        if( diff > 0.01f || diff < -0.01f ) {
-            Assert.fail(message + " (expected: " + expected + ", got " + actual + ")");
-        }
     }
 
     private void out(String msg) {

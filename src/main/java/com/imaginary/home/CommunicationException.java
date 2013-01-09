@@ -14,28 +14,27 @@
  *  enStratus Networks Inc.
  * ====================================================================
  */
-package com.imaginary.home.sys.hue;
+package com.imaginary.home;
 
-import com.imaginary.home.CommunicationException;
+import javax.annotation.Nonnull;
 
-/**
- * [Class Documentation]
- * <p>Created by George Reese: 1/7/13 9:57 AM</p>
- *
- * @author George Reese
- * @version 2012.02 (bugzid: [FOGBUGZID])
- * @since 2012.02
- */
-public class HueException extends CommunicationException {
-    public HueException(String msg) {
+public class CommunicationException extends Exception {
+    private int statusCode = 0;
+
+    public CommunicationException(@Nonnull String msg) {
         super(msg);
     }
 
-    public HueException(Throwable cause) {
+    public CommunicationException(@Nonnull Throwable cause) {
         super(cause);
     }
 
-    public HueException(int statusCode, String msg) {
-        super(statusCode, msg);
+    public CommunicationException(int statusCode, @Nonnull String msg) {
+        super(msg);
+        this.statusCode = statusCode;
+    }
+
+    public int getStatusCode() {
+        return statusCode;
     }
 }
