@@ -19,12 +19,16 @@ package com.imaginary.home.lighting;
 import com.imaginary.home.sys.hue.Hue;
 import org.dasein.util.uom.time.TimePeriod;
 
+import java.util.ArrayList;
 import java.util.Properties;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class Main {
 
     static public void main(String ... args) throws Exception {
+        ArrayList<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
+
         try {
             if( args.length < 2 ) {
                 System.out.println("java " + Main.class.getName() + " [ip] [command]");
@@ -70,7 +74,7 @@ public class Main {
 
                             if( which.equals("all") ) {
                                 for( Lightbulb bulb : hue.listBulbs() ) {
-                                    bulb.flipOn();
+                                    results.add(bulb.flipOn());
                                 }
                             }
                             else {
@@ -78,7 +82,7 @@ public class Main {
 
                                 for( Lightbulb bulb : hue.listBulbs() ) {
                                     if( bulb.getProviderId().equals(which) ) {
-                                        bulb.flipOn();
+                                        results.add(bulb.flipOn());
                                         found = true;
                                     }
                                 }
@@ -92,7 +96,7 @@ public class Main {
 
                             if( which.equals("all") ) {
                                 for( Lightbulb bulb : hue.listBulbs() ) {
-                                    bulb.flipOff();
+                                    results.add(bulb.flipOff());
                                 }
                             }
                             else {
@@ -100,7 +104,7 @@ public class Main {
 
                                 for( Lightbulb bulb : hue.listBulbs() ) {
                                     if( bulb.getProviderId().equals(which) ) {
-                                        bulb.flipOff();
+                                        results.add(bulb.flipOff());
                                         found = true;
                                     }
                                 }
@@ -119,7 +123,7 @@ public class Main {
 
                             if( which.equals("all") ) {
                                 for( Lightbulb bulb : hue.listBulbs() ) {
-                                    bulb.fadeOn(transition, brightness);
+                                    results.add(bulb.fadeOn(transition, brightness));
                                 }
                             }
                             else {
@@ -127,7 +131,7 @@ public class Main {
 
                                 for( Lightbulb bulb : hue.listBulbs() ) {
                                     if( bulb.getProviderId().equals(which) ) {
-                                        bulb.fadeOn(transition, brightness);
+                                        results.add(bulb.fadeOn(transition, brightness));
                                         found = true;
                                     }
                                 }
@@ -144,7 +148,7 @@ public class Main {
 
                             if( which.equals("all") ) {
                                 for( Lightbulb bulb : hue.listBulbs() ) {
-                                    bulb.fadeOff(transition);
+                                    results.add(bulb.fadeOff(transition));
                                 }
                             }
                             else {
@@ -152,7 +156,7 @@ public class Main {
 
                                 for( Lightbulb bulb : hue.listBulbs() ) {
                                     if( bulb.getProviderId().equals(which) ) {
-                                        bulb.fadeOff(transition);
+                                        results.add(bulb.fadeOff(transition));
                                         found = true;
                                     }
                                 }
@@ -194,7 +198,7 @@ public class Main {
 
                             if( which.equals("all") ) {
                                 for( Lightbulb bulb : hue.listBulbs() ) {
-                                    bulb.changeColor(color, transition);
+                                    results.add(bulb.changeColor(color, transition));
                                 }
                             }
                             else {
@@ -202,7 +206,7 @@ public class Main {
 
                                 for( Lightbulb bulb : hue.listBulbs() ) {
                                     if( bulb.getProviderId().equals(which) ) {
-                                        bulb.changeColor(color, transition);
+                                        results.add(bulb.changeColor(color, transition));
                                         found = true;
                                     }
                                 }
@@ -249,7 +253,7 @@ public class Main {
 
                             if( which.equals("all") ) {
                                 for( Lightbulb bulb : hue.listBulbs() ) {
-                                    bulb.strobe(interval, duration, colors);
+                                    results.add(bulb.strobe(interval, duration, colors));
                                 }
                             }
                             else {
@@ -257,7 +261,7 @@ public class Main {
 
                                 for( Lightbulb bulb : hue.listBulbs() ) {
                                     if( bulb.getProviderId().equals(which) ) {
-                                        bulb.strobe(interval, duration, colors);
+                                        results.add(bulb.strobe(interval, duration, colors));
                                         found = true;
                                     }
                                 }
@@ -271,8 +275,19 @@ public class Main {
             }
         }
         finally {
-            Hue.executorService.shutdown();
-            Hue.executorService.awaitTermination(10, TimeUnit.MINUTES);
+            boolean done;
+
+            do {
+                try { Thread.sleep(500L); }
+                catch( InterruptedException ignore ) { }
+                done = true;
+                for( Future<Boolean> f : results ) {
+                    if( !f.isDone() ) {
+                        done = false;
+                        break;
+                    }
+                }
+            } while( !done );
         }
     }
 }
