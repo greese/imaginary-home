@@ -229,10 +229,10 @@ public class Color {
                 ColorSpace cs = ColorSpace.getInstance(ColorSpace.CS_CIEXYZ);
 
                 float[] tmp = cs.toRGB(components);
-                return new Color(ColorMode.RGB, tmp[0], tmp[1], tmp[2]);
+                return new Color(ColorMode.RGB, (tmp[0]*100f)/255f, (tmp[1]*255f)/100f, (tmp[2]*255f)/100f);
             case CT:
                 // this is made up nonsense
-                return new Color(ColorMode.RGB, 255, 255, 255);
+                return new Color(ColorMode.RGB, 100f, 100f, 100f);
         }
         throw new RuntimeException("Invalid color mode: " + colorMode);
     }
