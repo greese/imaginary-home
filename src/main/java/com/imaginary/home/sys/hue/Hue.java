@@ -16,6 +16,7 @@
  */
 package com.imaginary.home.sys.hue;
 
+import com.imaginary.home.CommunicationException;
 import com.imaginary.home.lighting.LightingService;
 import com.imaginary.home.ProgrammableSystem;
 import org.apache.log4j.Logger;
@@ -26,7 +27,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Properties;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -78,7 +81,12 @@ public class Hue implements ProgrammableSystem {
         this.ipAddress = ipAddress;
         this.accessKey = accessKey;
         this.customProperties = customProperties;
-        this.endpoint = "http://" + ipAddress + "/api/" + accessKey + "/";
+        if( accessKey.equals("") ) {
+            this.endpoint = "http://" + ipAddress + "/api";
+        }
+        else {
+            this.endpoint = "http://" + ipAddress + "/api/" + accessKey + "/";
+        }
     }
 
     public @Nonnull String getAccessKey() {
@@ -92,7 +100,10 @@ public class Hue implements ProgrammableSystem {
 
     @Override
     public Properties getAuthenticationProperties() {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        Properties p = new Properties();
+
+        p.put("accessKey", accessKey);
+        return p;
     }
 
     public @Nonnull Properties getCustomProperties() {
@@ -107,6 +118,31 @@ public class Hue implements ProgrammableSystem {
     @Override
     public @Nullable LightingService getLightingService() {
         return null;
+    }
+
+    private String generateKey() {
+        StringBuilder str = new StringBuilder();
+        Random random = new Random();
+        int len = 20 + random.nextInt(10);
+
+        while( str.length() < len ) {
+            char c = (char)random.nextInt(255);
+
+            if( c >= 'a' && c <= 'z' ) {
+                if( c != 'l' && c != 'i' && c != 'o' ) {
+                    str.append(c);
+                }
+            }
+            else if( c >= 'A' && c <= 'Z' ) {
+                if( c != 'I' && c != 'O' ) {
+                    str.append(c);
+                }
+            }
+            else if( c >= '2' && c <= '9' ) {
+                str.append(c);
+            }
+        }
+        return str.toString();
     }
 
     @Override
@@ -142,5 +178,32 @@ public class Hue implements ProgrammableSystem {
             }
         }
         return matches;
+    }
+
+    public Properties pair(String applicationName) throws CommunicationException {
+        HueMethod method = new HueMethod(this);
+        HashMap<String,Object> auth = new HashMap<String, Object>();
+
+        auth.put("username", generateKey());
+        auth.put("devicetype", applicationName);
+        try {
+            JSONObject result = method.post("", new JSONObject(auth));
+            Properties properties = new Properties();
+
+            properties.put("accessKey", accessKey);
+            if( result != null && result.has("success") ) {
+                result = result.getJSONObject("success");
+                if( result.has("username") ) {
+                    accessKey = result.getString("username");
+                    endpoint = "http://" + ipAddress + "/api/" + accessKey + "/";
+                    properties.put("accessKey", accessKey);
+                    return properties;
+                }
+            }
+            throw new HueException("Failed to receive authentication key");
+        }
+        catch( JSONException e ) {
+            throw new HueException(e);
+        }
     }
 }

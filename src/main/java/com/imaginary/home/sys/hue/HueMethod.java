@@ -36,6 +36,7 @@ import org.apache.http.params.HttpProtocolParams;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -141,33 +142,6 @@ public class HueMethod {
                 wire.debug("");
             }
         }
-    }
-
-    protected @Nonnull HttpClient getClient() {
-        boolean ssl = hue.getAPIEndpoint().startsWith("https");
-        HttpParams params = new BasicHttpParams();
-
-        HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
-        //noinspection deprecation
-        HttpProtocolParams.setContentCharset(params, HTTP.UTF_8);
-        HttpProtocolParams.setUserAgent(params, "Imaginary Hue");
-
-        Properties p = hue.getCustomProperties();
-
-        if( p != null ) {
-            String proxyHost = p.getProperty("proxyHost");
-            String proxyPort = p.getProperty("proxyPort");
-
-            if( proxyHost != null ) {
-                int port = 0;
-
-                if( proxyPort != null && proxyPort.length() > 0 ) {
-                    port = Integer.parseInt(proxyPort);
-                }
-                params.setParameter(ConnRoutePNames.DEFAULT_PROXY, new HttpHost(proxyHost, port, ssl ? "https" : "http"));
-            }
-        }
-        return new DefaultHttpClient(params);
     }
 
     public JSONObject get(@Nonnull String resource) throws HueException {
@@ -279,6 +253,30 @@ public class HueMethod {
         }
     }
 
+    protected @Nonnull HttpClient getClient() {
+        boolean ssl = hue.getAPIEndpoint().startsWith("https");
+        HttpParams params = new BasicHttpParams();
+
+        HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
+        //noinspection deprecation
+        HttpProtocolParams.setContentCharset(params, HTTP.UTF_8);
+        HttpProtocolParams.setUserAgent(params, "Imaginary Home");
+
+        Properties p = hue.getCustomProperties();
+        String proxyHost = p.getProperty("proxyHost");
+        String proxyPort = p.getProperty("proxyPort");
+
+        if( proxyHost != null ) {
+            int port = 0;
+
+            if( proxyPort != null && proxyPort.length() > 0 ) {
+                port = Integer.parseInt(proxyPort);
+            }
+            params.setParameter(ConnRoutePNames.DEFAULT_PROXY, new HttpHost(proxyHost, port, ssl ? "https" : "http"));
+        }
+        return new DefaultHttpClient(params);
+    }
+
     public JSONObject post(@Nonnull String resource, JSONObject body) throws HueException {
         Logger std = Hue.getLogger(HueMethod.class);
         Logger wire = Hue.getWireLogger(HueMethod.class);
@@ -378,6 +376,22 @@ public class HueMethod {
                     if( wire.isDebugEnabled() ) {
                         wire.debug(json);
                         wire.debug("");
+                    }
+                    if( json.startsWith("[") ) {
+                        JSONArray arr = new JSONArray(json);
+
+                        if( arr.length() > 0 ) {
+                            JSONObject ob = arr.getJSONObject(0);
+
+                            if( ob.has("error") ) {
+                                ob = ob.getJSONObject("error");
+                                if( ob.has("description") ) {
+                                    throw new HueException(ob.getString("description"));
+                                }
+                            }
+                            return ob;
+                        }
+                        return null;
                     }
                     return new JSONObject(json);
                 }
@@ -504,11 +518,22 @@ public class HueMethod {
                         wire.debug("");
                     }
                     if( json.startsWith("[") ) {
+                        JSONArray arr = new JSONArray(json);
+
+                        if( arr.length() > 0 ) {
+                            JSONObject ob = arr.getJSONObject(0);
+
+                            if( ob.has("error") ) {
+                                ob = ob.getJSONObject("error");
+                                if( ob.has("description") ) {
+                                    throw new HueException(ob.getString("description"));
+                                }
+                            }
+                            return ob;
+                        }
                         return null;
                     }
-                    else {
-                        return new JSONObject(json);
-                    }
+                    return new JSONObject(json);
                 }
                 catch( IOException e ) {
                     throw new HueException(status.getStatusCode(), e.getMessage());
