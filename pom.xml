@@ -21,8 +21,8 @@
     </licenses>
 
     <scm>
-        <connection>scm:git:git://github.com/greese/imaginary-hue.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/greese/imaginary-hue.git</developerConnection>
+        <connection>scm:git:git://github.com/greese/imaginary-home.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/greese/imaginary-home.git</developerConnection>
         <url>http://github.com/greese/imaginary-hue</url>
     </scm>
 
