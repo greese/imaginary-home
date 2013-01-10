@@ -17,7 +17,6 @@ This will build a JAR in the target/ directory and all of the supporting librari
 If you want to quickly see what this library can do, run the unit tests. First, create a ~/.m2/settings.xml file that
 looks minimally like this:
 
-`
 <?xml version="1.0" encoding="UTF-8"?>
 
 <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
@@ -31,7 +30,7 @@ looks minimally like this:
     </profile>
  </profiles>
 </settings>
-`
+
 
 Of course, you should put in the IP address of your hub and an actual paired user name that your Hue device will
 recognize. If you have yet to pair your device, you can use the command line tool to pair it. More on that later.
