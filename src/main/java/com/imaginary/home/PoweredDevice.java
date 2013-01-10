@@ -16,26 +16,30 @@
 package com.imaginary.home;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import java.util.concurrent.Future;
 
 /**
- * Any resource managed within a home automation system.
+ * A powered device is a managed resource that may be turned off and on.
  */
-public interface ManagedResource {
+public interface PoweredDevice extends ManagedResource {
     /**
-     * @return the manufacturer's model number that identifies what this resource is
+     * Flips the resource into the off state without changing any other values.
+     * @return true if the operation resulted in a change in state
      * @throws CommunicationException an error occurred talking with the API
      */
-    public @Nullable String getModel() throws CommunicationException;
+    public @Nonnull Future<Boolean> flipOff() throws CommunicationException;
 
     /**
-     * @return the name of the resource as it is recognized in the home automation system
+     * Flips the resource into an on state without changing anything else about the resource.
+     * @return true if the operation resulted in a change in state
      * @throws CommunicationException an error occurred talking with the API
      */
-    public @Nonnull String getName() throws CommunicationException;
+    public @Nonnull Future<Boolean> flipOn() throws CommunicationException;
+
 
     /**
-     * @return the unique ID of this resource in the home automation system
+     * @return true if this resource is on
+     * @throws CommunicationException an error occurred talking with the API
      */
-    public @Nonnull String getProviderId();
+    public boolean isOn() throws CommunicationException;
 }

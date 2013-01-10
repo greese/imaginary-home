@@ -18,7 +18,7 @@ package com.imaginary.home.sys.hue;
 import com.imaginary.home.CommunicationException;
 import com.imaginary.home.lighting.Color;
 import com.imaginary.home.lighting.ColorMode;
-import com.imaginary.home.lighting.Lightbulb;
+import com.imaginary.home.lighting.Light;
 import org.apache.log4j.Logger;
 import org.dasein.util.uom.time.TimePeriod;
 import org.json.JSONArray;
@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
-public class HueBulb implements Lightbulb {
+public class HueBulb implements Light {
     static public final Logger logger = Hue.getLogger(HueBulb.class);
 
     private String bulbId;

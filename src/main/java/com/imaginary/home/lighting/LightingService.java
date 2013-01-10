@@ -22,7 +22,7 @@ import javax.annotation.Nonnull;
 public interface LightingService {
     public @Nonnull String getName();
 
-    public Iterable<Lightbulb> listBulbs() throws CommunicationException;
+    public Iterable<Light> listBulbs() throws CommunicationException;
 
     public Iterable<ColorMode> listNativeColorModes();
 }

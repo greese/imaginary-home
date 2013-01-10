@@ -18,7 +18,7 @@ package com.imaginary.home.sys.hue;
 import com.imaginary.home.CommunicationException;
 import com.imaginary.home.HomeAutomationSystem;
 import com.imaginary.home.lighting.ColorMode;
-import com.imaginary.home.lighting.Lightbulb;
+import com.imaginary.home.lighting.Light;
 import com.imaginary.home.lighting.LightingService;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
@@ -123,7 +123,7 @@ public class Hue implements HomeAutomationSystem, LightingService {
     }
 
     @Override
-    public @Nonnull Iterable<Lightbulb> listBulbs() throws CommunicationException {
+    public @Nonnull Iterable<Light> listBulbs() throws CommunicationException {
         HueMethod method = new HueMethod(this);
 
         JSONObject list = method.get("lights");
@@ -131,7 +131,7 @@ public class Hue implements HomeAutomationSystem, LightingService {
         if( list == null ) {
             return Collections.emptyList();
         }
-        ArrayList<Lightbulb> matches = new ArrayList<Lightbulb>();
+        ArrayList<Light> matches = new ArrayList<Light>();
 
         for( String id : JSONObject.getNames(list) ) {
             try {

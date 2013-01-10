@@ -16,7 +16,7 @@
 package com.imaginary.home.lighting;
 
 import com.imaginary.home.CommunicationException;
-import com.imaginary.home.ManagedResource;
+import com.imaginary.home.PoweredDevice;
 import org.dasein.util.uom.time.TimePeriod;
 
 import javax.annotation.Nonnegative;
@@ -25,9 +25,10 @@ import javax.annotation.Nullable;
 import java.util.concurrent.Future;
 
 /**
- * A light bulb that may be individually controlled in a home automation system.
+ * A light that may be an individual light bulb or a lamp containing many different bulbs. Lights may be white or color
+ * or have the ability to change color.
  */
-public interface Lightbulb extends ManagedResource {
+public interface Light extends PoweredDevice {
     /**
      * General purpose method for changing the color of a bulb regardless of the underlying color support mechanism.
      * If the new color is non-white (not {@link ColorMode#CT}) and the underlying light bulb is not color, this
@@ -108,22 +109,11 @@ public interface Lightbulb extends ManagedResource {
      */
     public @Nonnull Future<Boolean> fadeOn(final @Nonnull TimePeriod<?> transitionTime, final @Nonnegative float targetBrightness) throws CommunicationException;
 
-    /**
-     * Flips the light off into the off state without changing any other values.
-     * @return true if the fade resulted in a change of state to the bulb
-     * @throws CommunicationException an error occurred talking with the API
-     */
-    public @Nonnull Future<Boolean> flipOff() throws CommunicationException;
-
-    public @Nonnull Future<Boolean> flipOn() throws CommunicationException;
-
     public @Nonnegative float getBrightness() throws CommunicationException;
 
     public @Nonnull Color getColor() throws CommunicationException;
 
     public @Nonnull ColorMode getColorMode() throws CommunicationException;
-
-    public boolean isOn() throws CommunicationException;
 
     public Future<Boolean> strobe(final @Nonnull TimePeriod<?> interval, final @Nullable TimePeriod<?> duration, final @Nonnull Color ... colors) throws CommunicationException;
 
