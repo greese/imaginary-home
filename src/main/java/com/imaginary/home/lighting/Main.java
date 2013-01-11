@@ -71,14 +71,14 @@ public class Main {
                             String which = (args.length < 4 ? "all" : args[3]);
 
                             if( which.equals("all") ) {
-                                for( Light bulb : hue.listBulbs() ) {
+                                for( Light bulb : hue.listLights() ) {
                                     results.add(bulb.flipOn());
                                 }
                             }
                             else {
                                 boolean found = false;
 
-                                for( Light bulb : hue.listBulbs() ) {
+                                for( Light bulb : hue.listLights() ) {
                                     if( bulb.getProviderId().equals(which) ) {
                                         results.add(bulb.flipOn());
                                         found = true;
@@ -93,14 +93,14 @@ public class Main {
                             String which = (args.length < 4 ? "all" : args[3]);
 
                             if( which.equals("all") ) {
-                                for( Light bulb : hue.listBulbs() ) {
+                                for( Light bulb : hue.listLights() ) {
                                     results.add(bulb.flipOff());
                                 }
                             }
                             else {
                                 boolean found = false;
 
-                                for( Light bulb : hue.listBulbs() ) {
+                                for( Light bulb : hue.listLights() ) {
                                     if( bulb.getProviderId().equals(which) ) {
                                         results.add(bulb.flipOff());
                                         found = true;
@@ -120,14 +120,14 @@ public class Main {
                             float brightness = Float.parseFloat(b);
 
                             if( which.equals("all") ) {
-                                for( Light bulb : hue.listBulbs() ) {
+                                for( Light bulb : hue.listLights() ) {
                                     results.add(bulb.fadeOn(transition, brightness));
                                 }
                             }
                             else {
                                 boolean found = false;
 
-                                for( Light bulb : hue.listBulbs() ) {
+                                for( Light bulb : hue.listLights() ) {
                                     if( bulb.getProviderId().equals(which) ) {
                                         results.add(bulb.fadeOn(transition, brightness));
                                         found = true;
@@ -145,14 +145,14 @@ public class Main {
                             TimePeriod transition = TimePeriod.valueOf(t);
 
                             if( which.equals("all") ) {
-                                for( Light bulb : hue.listBulbs() ) {
+                                for( Light bulb : hue.listLights() ) {
                                     results.add(bulb.fadeOff(transition));
                                 }
                             }
                             else {
                                 boolean found = false;
 
-                                for( Light bulb : hue.listBulbs() ) {
+                                for( Light bulb : hue.listLights() ) {
                                     if( bulb.getProviderId().equals(which) ) {
                                         results.add(bulb.fadeOff(transition));
                                         found = true;
@@ -195,14 +195,14 @@ public class Main {
                             TimePeriod transition = TimePeriod.valueOf(t);
 
                             if( which.equals("all") ) {
-                                for( Light bulb : hue.listBulbs() ) {
+                                for( Light bulb : hue.listLights() ) {
                                     results.add(bulb.changeColor(color, transition));
                                 }
                             }
                             else {
                                 boolean found = false;
 
-                                for( Light bulb : hue.listBulbs() ) {
+                                for( Light bulb : hue.listLights() ) {
                                     if( bulb.getProviderId().equals(which) ) {
                                         results.add(bulb.changeColor(color, transition));
                                         found = true;
@@ -250,14 +250,14 @@ public class Main {
                             TimePeriod duration = TimePeriod.valueOf(d);
 
                             if( which.equals("all") ) {
-                                for( Light bulb : hue.listBulbs() ) {
+                                for( Light bulb : hue.listLights() ) {
                                     results.add(bulb.strobe(interval, duration, colors));
                                 }
                             }
                             else {
                                 boolean found = false;
 
-                                for( Light bulb : hue.listBulbs() ) {
+                                for( Light bulb : hue.listLights() ) {
                                     if( bulb.getProviderId().equals(which) ) {
                                         results.add(bulb.strobe(interval, duration, colors));
                                         found = true;

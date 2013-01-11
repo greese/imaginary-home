@@ -28,9 +28,13 @@ public interface HomeAutomationSystem {
 
     public @Nonnull Properties getCustomProperties();
 
-    public @Nullable LightingService getLightingService();
+    public @Nonnull String getId();
 
     public @Nonnull String getName();
 
     public @Nonnull String getVendor();
+
+    public void init(@Nonnull String id, @Nonnull Properties auth, @Nonnull Properties custom);
+
+    public @Nonnull Properties pair(@Nonnull String applicationName) throws CommunicationException;
 }

@@ -31,12 +31,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class Hue implements HomeAutomationSystem, LightingService {
-    static public final ExecutorService executorService = Executors.newCachedThreadPool();
-
     static private @Nonnull String getLastItem(@Nonnull String name) {
         int idx = name.lastIndexOf('.');
 
@@ -72,6 +68,7 @@ public class Hue implements HomeAutomationSystem, LightingService {
     private String     accessKey;
     private Properties customProperties;
     private String     endpoint;
+    private String     id;
     private String     ipAddress;
 
     public Hue(@Nonnull String ipAddress, @Nonnull String accessKey) {
@@ -108,8 +105,8 @@ public class Hue implements HomeAutomationSystem, LightingService {
     }
 
     @Override
-    public @Nullable LightingService getLightingService() {
-        return this;
+    public @Nonnull String getId() {
+        return id;
     }
 
     @Override
@@ -123,7 +120,15 @@ public class Hue implements HomeAutomationSystem, LightingService {
     }
 
     @Override
-    public @Nonnull Iterable<Light> listBulbs() throws CommunicationException {
+    public void init(@Nonnull String id, @Nonnull Properties auth, @Nonnull Properties custom) {
+        this.id = id;
+        accessKey = auth.getProperty("accessKey", "");
+        ipAddress = auth.getProperty("ipAddress");
+        customProperties = custom;
+    }
+
+    @Override
+    public @Nonnull Iterable<Light> listLights() throws CommunicationException {
         HueMethod method = new HueMethod(this);
 
         JSONObject list = method.get("lights");
@@ -183,7 +188,8 @@ public class Hue implements HomeAutomationSystem, LightingService {
         return modes;
     }
 
-    public Properties pair(String applicationName) throws CommunicationException {
+    @Override
+    public @Nonnull Properties pair(@Nonnull String applicationName) throws CommunicationException {
         HueMethod method = new HueMethod(this);
         HashMap<String,Object> auth = new HashMap<String, Object>();
 

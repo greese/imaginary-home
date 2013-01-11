@@ -45,7 +45,7 @@ public class HueTest {
 
     @Before
     public void setUp() throws CommunicationException {
-        bulbList = getHue().listBulbs();
+        bulbList = getHue().listLights();
     }
 
     @Test
