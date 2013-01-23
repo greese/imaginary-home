@@ -27,6 +27,7 @@ import org.dasein.util.CachedItem;
 import javax.annotation.Nonnull;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -41,37 +42,7 @@ public class Configuration implements CachedItem {
 
     static public @Nonnull String decrypt(@Nonnull String locationId, @Nonnull String value) {
         try {
-            StringBuilder customSalt = new StringBuilder();
-            String s = getConfiguration().salt;
-            int i = 0;
-
-            while( customSalt.length() < 32 ) {
-                if( i < s.length() ) {
-                    customSalt.append(s.charAt(i));
-                }
-                if( i < locationId.length() ) {
-                    char c = locationId.charAt(i);
-
-                    if( c != '-' ) {
-                        customSalt.append(locationId.charAt(i));
-                    }
-                }
-                i++;
-                if( i >= s.length() && i >= locationId.length() ) {
-                    break;
-                }
-            }
-            byte[] salt = customSalt.toString().getBytes("utf-8");
-
-            if( salt.length > 16 ) {
-                byte[] k = new byte[16];
-
-                for( i=0; i<k.length; i++ ) {
-                    k[i] = salt[i];
-                }
-                salt = k;
-            }
-            SecretKeySpec spec = new SecretKeySpec(salt, "AES");
+            SecretKeySpec spec = new SecretKeySpec(getConfiguration().getCustomSalt(locationId), "AES");
             Cipher cipher = Cipher.getInstance("AES");
 
             cipher.init(Cipher.DECRYPT_MODE, spec);
@@ -88,37 +59,7 @@ public class Configuration implements CachedItem {
 
     static public @Nonnull String encrypt(@Nonnull String locationId, @Nonnull String value) {
         try {
-            StringBuilder customSalt = new StringBuilder();
-            String s = getConfiguration().salt;
-            int i = 0;
-
-            while( customSalt.length() < 32 ) {
-                if( i < s.length() ) {
-                    customSalt.append(s.charAt(i));
-                }
-                if( i < locationId.length() ) {
-                    char c = locationId.charAt(i);
-
-                    if( c != '-' ) {
-                        customSalt.append(locationId.charAt(i));
-                    }
-                }
-                i++;
-                if( i >= s.length() && i >= locationId.length() ) {
-                    break;
-                }
-            }
-            byte[] salt = customSalt.toString().getBytes("utf-8");
-
-            if( salt.length > 16 ) {
-                byte[] k = new byte[16];
-
-                for( i=0; i<k.length; i++ ) {
-                    k[i] = salt[i];
-                }
-                salt = k;
-            }
-            SecretKeySpec spec = new SecretKeySpec(salt, "AES");
+            SecretKeySpec spec = new SecretKeySpec(getConfiguration().getCustomSalt(locationId), "AES");
             Cipher cipher = Cipher.getInstance("AES");
 
             cipher.init(Cipher.ENCRYPT_MODE, spec);
@@ -190,6 +131,39 @@ public class Configuration implements CachedItem {
     private String salt;
 
     public Configuration() { }
+
+    private @Nonnull byte[] getCustomSalt(@Nonnull String locationId) throws UnsupportedEncodingException {
+        StringBuilder customSalt = new StringBuilder();
+        int i = 0;
+
+        while( customSalt.length() < 32 ) {
+            if( i < salt.length() ) {
+                customSalt.append(this.salt.charAt(i));
+            }
+            if( i < locationId.length() ) {
+                char c = locationId.charAt(i);
+
+                if( c != '-' ) {
+                    customSalt.append(locationId.charAt(i));
+                }
+            }
+            i++;
+            if( i >= salt.length() && i >= locationId.length() ) {
+                break;
+            }
+        }
+        byte[] s = customSalt.toString().getBytes("utf-8");
+
+        if( s.length > 16 ) {
+            byte[] k = new byte[16];
+
+            for( i=0; i<k.length; i++ ) {
+                k[i] = s[i];
+            }
+            return k;
+        }
+        return s;
+    }
 
     @Override
     public boolean isValidForCache() {
