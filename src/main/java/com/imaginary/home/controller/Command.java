@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.imaginary.home;
+package com.imaginary.home.controller;
 
 
 import com.imaginary.home.lighting.Color;
@@ -31,7 +31,6 @@ import org.json.JSONObject;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -76,17 +75,17 @@ public class Command {
         }
     }
 
-    private boolean execute() throws CommunicationException, IHAException {
-        HomeAutomationSystem system = IHA.getInstance().getSystem(systemId);
+    private boolean execute() throws CommunicationException, ControllerException {
+        HomeAutomationSystem system = HomeController.getInstance().getSystem(systemId);
 
         if( system == null ) {
-            throw new IHAException("No such home automation system: " + systemId);
+            throw new ControllerException("No such home automation system: " + systemId);
         }
         ArrayList<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
 
         if( service.equalsIgnoreCase("lighting") ) {
             if( !(system instanceof LightingService) ) {
-                throw new IHAException("No lighting support exists in " + system);
+                throw new ControllerException("No lighting support exists in " + system);
             }
             LightingService svc = (LightingService)system;
             for( Light light : svc.listLights() ) {
@@ -116,7 +115,7 @@ public class Command {
         return false;
     }
 
-    private @Nullable Future<Boolean> executeLighting(@Nonnull Light light) throws CommunicationException, IHAException {
+    private @Nullable Future<Boolean> executeLighting(@Nonnull Light light) throws CommunicationException, ControllerException {
         try {
             if( command.equals("flipOn") ) {
                 return light.flipOn();
@@ -174,7 +173,7 @@ public class Command {
                     color = new Color(mode, components);
                 }
                 else {
-                    throw new IHAException("No color was specified for the color command");
+                    throw new ControllerException("No color was specified for the color command");
                 }
                 if( arguments.has("transitionTime") ) {
                     transition = TimePeriod.valueOf(arguments.getString("duration"));
@@ -213,11 +212,11 @@ public class Command {
                 return light.fadeOff(transition);
             }
             else {
-                throw new IHAException("Unknown lighting command: " + command);
+                throw new ControllerException("Unknown lighting command: " + command);
             }
         }
         catch( JSONException e ) {
-            throw new IHAException("Invalid JSON in command: " + e.getMessage());
+            throw new ControllerException("Invalid JSON in command: " + e.getMessage());
         }
     }
 
@@ -226,7 +225,7 @@ public class Command {
     }
 
     public Future<Boolean> start() {
-        return IHA.executorService.submit(new Callable<Boolean>() {
+        return HomeController.executorService.submit(new Callable<Boolean>() {
             @Override
             public Boolean call() throws Exception {
                 return execute();
@@ -234,7 +233,7 @@ public class Command {
         });
     }
 
-    private @Nonnull boolean[] waitFor(@Nonnull ArrayList<Future<Boolean>> threads) throws IHAException, CommunicationException {
+    private @Nonnull boolean[] waitFor(@Nonnull ArrayList<Future<Boolean>> threads) throws ControllerException, CommunicationException {
         boolean[] results = new boolean[threads.size()];
         long t = System.currentTimeMillis() + timeout;
         boolean done = true;
@@ -253,16 +252,16 @@ public class Command {
                     catch( InterruptedException ignore ) { }
                 }
                 catch( ExecutionException e ) {
-                    if( e.getCause() instanceof IHAException ) {
-                        throw (IHAException)e.getCause();
+                    if( e.getCause() instanceof ControllerException ) {
+                        throw (ControllerException)e.getCause();
                     }
                     else if( e.getCause() instanceof CommunicationException ) {
                         throw (CommunicationException)e.getCause();
                     }
-                    throw new IHAException(e);
+                    throw new ControllerException(e);
                 }
                 catch( InterruptedException e ) {
-                    throw new IHAException(e);
+                    throw new ControllerException(e);
                 }
             }
             if( !done && !f.isDone() ) {
@@ -270,7 +269,7 @@ public class Command {
             }
         }
         if( !done ) {
-            throw new IHAException("Action timed out");
+            throw new ControllerException("Action timed out");
         }
         return results;
     }

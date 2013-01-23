@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.imaginary.home.sys.hue;
+package com.imaginary.home.device.hue;
 
-import com.imaginary.home.CommunicationException;
-import com.imaginary.home.HomeAutomationSystem;
+import com.imaginary.home.controller.CommunicationException;
+import com.imaginary.home.controller.HomeAutomationSystem;
 import com.imaginary.home.lighting.ColorMode;
 import com.imaginary.home.lighting.Light;
 import com.imaginary.home.lighting.LightingService;
@@ -25,7 +25,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;

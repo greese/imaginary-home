@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.imaginary.home;
+package com.imaginary.home.cloud;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -22,8 +22,8 @@ import java.util.Map;
 /**
  * <p>
  * A cloud service is a web service on the public internet that provides some kind of interface (UI, API, both)
- * for people/applications to interact with on the public internet and then route requests down to the home
- * behind the user's home firewall. The IHA daemon running in the home talks to one or more cloud services,
+ * for people/applications to interact with on the public internet and then route requests down to the home controller
+ * behind the user's home firewall. The home controller running in the home talks to one or more cloud services,
  * notifying it about the current status of all home automation devices, and fetching any commands posted by
  * users or their tools.
  * </p>
@@ -33,9 +33,9 @@ import java.util.Map;
  *     protocol. If you use multiple services, they can cooperate together nicely.
  * </p>
  * <p>
- *     When the IHA daemon starts up, it looks at the configuration file to identify any current cloud services
- *     it works with. You can then add more services through the service pairing protocol. Once added, this IHA
- *     daemon will periodically communicate with the cloud service.
+ *     When the home controller starts up, it looks at the configuration file to identify any current cloud services
+ *     it works with. You can then add more services through the service pairing protocol. Once added, this home
+ *     controller will periodically communicate with the cloud service.
  * </p>
  */
 public class CloudService {

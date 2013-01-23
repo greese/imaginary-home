@@ -15,8 +15,8 @@
  */
 package com.imaginary.home.lighting;
 
-import com.imaginary.home.CommunicationException;
-import com.imaginary.home.PoweredDevice;
+import com.imaginary.home.controller.CommunicationException;
+import com.imaginary.home.controller.PoweredDevice;
 import org.dasein.util.uom.time.TimePeriod;
 
 import javax.annotation.Nonnegative;

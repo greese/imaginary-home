@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.imaginary.home;
+package com.imaginary.home.controller;
 
 import org.json.JSONObject;
 

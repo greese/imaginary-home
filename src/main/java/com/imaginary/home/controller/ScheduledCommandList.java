@@ -13,15 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.imaginary.home;
+package com.imaginary.home.controller;
 
 import org.json.JSONObject;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
 
 public class ScheduledCommandList extends CommandList implements Iterable<JSONObject>, Comparable<ScheduledCommandList> {
     private long                  executeAfter;

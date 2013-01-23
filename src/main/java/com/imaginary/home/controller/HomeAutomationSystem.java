@@ -13,12 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.imaginary.home;
-
-import com.imaginary.home.lighting.LightingService;
+package com.imaginary.home.controller;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.Properties;
 
 public interface HomeAutomationSystem {

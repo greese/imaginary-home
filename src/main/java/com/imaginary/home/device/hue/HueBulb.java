@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.imaginary.home.sys.hue;
+package com.imaginary.home.device.hue;
 
-import com.imaginary.home.CommunicationException;
-import com.imaginary.home.IHA;
+import com.imaginary.home.controller.CommunicationException;
+import com.imaginary.home.controller.HomeController;
 import com.imaginary.home.lighting.Color;
 import com.imaginary.home.lighting.ColorMode;
 import com.imaginary.home.lighting.Light;
@@ -49,7 +49,7 @@ public class HueBulb implements Light {
 
     @Override
     public @Nonnull Future<Boolean> changeColor(final @Nonnull Color newColor, final @Nullable TimePeriod<?> transitionTime) {
-        return IHA.executorService.submit(new Callable<Boolean>() {
+        return HomeController.executorService.submit(new Callable<Boolean>() {
             @Override
             public Boolean call() throws HueException {
                 long millis = (transitionTime == null ? 0L : transitionTime.convertTo(TimePeriod.MILLISECOND).longValue());
@@ -122,7 +122,7 @@ public class HueBulb implements Light {
 
     @Override
     public @Nonnull Future<Boolean> changeWhite(final @Nonnegative int warmthInMireds, final @Nonnegative float brightness, final @Nullable TimePeriod<?> transitionTime) {
-        return IHA.executorService.submit(new Callable<Boolean>() {
+        return HomeController.executorService.submit(new Callable<Boolean>() {
             @Override
             public Boolean call() throws HueException {
                 long millis = (transitionTime == null ? 0L : transitionTime.convertTo(TimePeriod.MILLISECOND).longValue());
@@ -138,7 +138,7 @@ public class HueBulb implements Light {
 
     @Override
     public @Nonnull Future<Boolean> fadeOff(final @Nonnull  TimePeriod<?> transitionTime) throws CommunicationException {
-        return IHA.executorService.submit(new Callable<Boolean>() {
+        return HomeController.executorService.submit(new Callable<Boolean>() {
             @Override
             public Boolean call() throws CommunicationException {
                 return fade(transitionTime, 0);
@@ -153,7 +153,7 @@ public class HueBulb implements Light {
 
     @Override
     public @Nonnull Future<Boolean> fadeOn(final @Nonnull TimePeriod<?> transitionTime, final @Nonnegative float targetBrightness) {
-        return IHA.executorService.submit(new Callable<Boolean>() {
+        return HomeController.executorService.submit(new Callable<Boolean>() {
             @Override
             public Boolean call() throws CommunicationException {
                 return fade(transitionTime, (int)((targetBrightness*254)/100));
@@ -283,7 +283,7 @@ public class HueBulb implements Light {
 
     @Override
     public @Nonnull Future<Boolean> flipOff() {
-        return IHA.executorService.submit(new Callable<Boolean>() {
+        return HomeController.executorService.submit(new Callable<Boolean>() {
             @Override
             public Boolean call() throws CommunicationException {
                 return flip(false);
@@ -293,7 +293,7 @@ public class HueBulb implements Light {
 
     @Override
     public @Nonnull Future<Boolean> flipOn() throws CommunicationException {
-        return IHA.executorService.submit(new Callable<Boolean>() {
+        return HomeController.executorService.submit(new Callable<Boolean>() {
             @Override
             public Boolean call() throws CommunicationException {
                 return flip(true);
@@ -461,7 +461,7 @@ public class HueBulb implements Light {
 
     @Override
     public Future<Boolean> strobe(final @Nonnull TimePeriod<?> interval, final @Nullable TimePeriod<?> duration, final @Nonnull Color ... colors) throws CommunicationException {
-        return IHA.executorService.submit(new Callable<Boolean>() {
+        return HomeController.executorService.submit(new Callable<Boolean>() {
             @Override
             public Boolean call() throws HueException {
                 long end = (duration == null ? 0L : (System.currentTimeMillis() + duration.convertTo(TimePeriod.MILLISECOND).longValue()));

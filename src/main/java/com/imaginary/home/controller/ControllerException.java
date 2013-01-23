@@ -13,27 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.imaginary.home;
+package com.imaginary.home.controller;
 
 import javax.annotation.Nonnull;
 
-public class CommunicationException extends Exception {
-    private int statusCode = 0;
-
-    public CommunicationException(@Nonnull String msg) {
+public class ControllerException extends Exception {
+    public ControllerException(@Nonnull String msg) {
         super(msg);
     }
 
-    public CommunicationException(@Nonnull Throwable cause) {
+    public ControllerException(@Nonnull Throwable cause) {
         super(cause);
-    }
-
-    public CommunicationException(int statusCode, @Nonnull String msg) {
-        super(msg);
-        this.statusCode = statusCode;
-    }
-
-    public int getStatusCode() {
-        return statusCode;
     }
 }

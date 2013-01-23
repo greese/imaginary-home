@@ -15,7 +15,7 @@
  */
 package com.imaginary.home.lighting;
 
-import com.imaginary.home.sys.hue.Hue;
+import com.imaginary.home.device.hue.Hue;
 import org.dasein.util.uom.time.TimePeriod;
 
 import java.util.ArrayList;

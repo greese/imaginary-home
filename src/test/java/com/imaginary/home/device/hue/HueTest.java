@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.imaginary.home.sys.hue;
+package com.imaginary.home.device.hue;
 
-import com.imaginary.home.CommunicationException;
+import com.imaginary.home.controller.CommunicationException;
 import com.imaginary.home.lighting.Color;
 import com.imaginary.home.lighting.Light;
 import junit.framework.Assert;
@@ -31,7 +31,7 @@ import java.util.Iterator;
 import java.util.concurrent.Future;
 
 public class HueTest {
-    static private final Logger logger = Logger.getLogger("com.imaginary.home.sys.hue.test");
+    static private final Logger logger = Logger.getLogger("com.imaginary.home.device.hue.test");
 
     static public final Color RED   = Color.getRGB255(255,0,0);
     static public final Color GREEN = Color.getRGB255(0,255,0);

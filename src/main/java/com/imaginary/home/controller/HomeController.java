@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.imaginary.home;
+package com.imaginary.home.controller;
 
+import com.imaginary.home.cloud.CloudService;
 import com.imaginary.home.lighting.Light;
 import com.imaginary.home.lighting.LightingService;
 import org.dasein.util.CalendarWrapper;
@@ -53,14 +54,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-public class IHA {
+public class HomeController {
     static public final ExecutorService executorService = Executors.newCachedThreadPool();
 
     static public final String COMMAND_FILE   = "/etc/imaginary/iha/command.cfg";
     static public final String CONFIG_FILE    = "/etc/imaginary/iha/iha.cfg";
     static public final String SCHEDULER_FILE = "/etc/imaginary/iha/schedule.cfg";
 
-    static private IHA iha;
+    static private HomeController homeController;
 
     static public @Nonnull String formatDate(long timestamp) {
         return formatDate(new Date(timestamp));
@@ -74,16 +75,17 @@ public class IHA {
         return fmt.format(cal.getTime());
     }
 
-    static public @Nonnull IHA getInstance() throws IHAException {
-        if( iha == null ) {
+    static public @Nonnull
+    HomeController getInstance() throws ControllerException {
+        if( homeController == null ) {
             try {
-                iha = new IHA();
+                homeController = new HomeController();
             }
             catch( Exception e ) {
-                throw new IHAException("Unable to load system: " + e.getMessage());
+                throw new ControllerException("Unable to load system: " + e.getMessage());
             }
         }
-        return iha;
+        return homeController;
     }
 
     static public @Nonnull String now() {
@@ -103,7 +105,7 @@ public class IHA {
     private boolean                                running           = false;
     private TreeSet<ScheduledCommandList>          scheduler;
 
-    private IHA() throws JSONException, ClassNotFoundException, IllegalAccessException, InstantiationException, IOException {
+    private HomeController() throws JSONException, ClassNotFoundException, IllegalAccessException, InstantiationException, IOException {
         automationSystems = new HashMap<String,HomeAutomationSystem>();
         scheduler = new TreeSet<ScheduledCommandList>();
         cloudServices = new ArrayList<CloudService>();
@@ -159,7 +161,7 @@ public class IHA {
         }
     }
 
-    public void cancelScheduledCommands(@Nonnull String ... havingCommandIds) throws IHAException {
+    public void cancelScheduledCommands(@Nonnull String ... havingCommandIds) throws ControllerException {
         synchronized( commandQueue ) {
             if( !running ) {
                 return;
@@ -176,7 +178,7 @@ public class IHA {
                             }
                         }
                         catch( JSONException e ) {
-                            throw new IHAException(e);
+                            throw new ControllerException(e);
                         }
                     }
                     if( matches ) {
@@ -538,7 +540,7 @@ public class IHA {
         return automationSystems.values();
     }
 
-    public @Nonnull String pairService(@Nonnull String name, @Nonnull String endpoint, @Nonnull String pairingToken) throws IHAException, CommunicationException {
+    public @Nonnull String pairService(@Nonnull String name, @Nonnull String endpoint, @Nonnull String pairingToken) throws ControllerException, CommunicationException {
         CloudService service = new CloudService(UUID.randomUUID().toString(), name, endpoint);
 
         service.pair(pairingToken);
@@ -547,7 +549,7 @@ public class IHA {
         return service.getServiceId();
     }
 
-    public @Nonnull String pairSystem(@Nonnull String cname, @Nonnull Properties authProperties, @Nonnull Properties customProperties) throws IHAException, CommunicationException {
+    public @Nonnull String pairSystem(@Nonnull String cname, @Nonnull Properties authProperties, @Nonnull Properties customProperties) throws ControllerException, CommunicationException {
         try {
             HomeAutomationSystem system = (HomeAutomationSystem)Class.forName(cname).newInstance();
             String id = UUID.randomUUID().toString();
@@ -706,17 +708,17 @@ public class IHA {
         }
     }
 
-    public void queueCommands(@Nonnull CloudService service, @Nonnull JSONObject ... commands) throws IHAException {
+    public void queueCommands(@Nonnull CloudService service, @Nonnull JSONObject ... commands) throws ControllerException {
         synchronized( commandQueue ) {
             if( !running ) {
-                throw new IHAException("Not currently accepting new commands");
+                throw new ControllerException("Not currently accepting new commands");
             }
             commandQueue.push(new CommandList(service.getServiceId(), commands));
             commandQueue.notifyAll();
         }
     }
 
-    private void saveCommands(List<CommandList> toSave) throws IHAException {
+    private void saveCommands(List<CommandList> toSave) throws ControllerException {
         synchronized( commandQueue ) {
             ArrayList<Map<String,Object>> all = new ArrayList<Map<String, Object>>();
             HashMap<String,Object> cfg = new HashMap<String, Object>();
@@ -730,7 +732,7 @@ public class IHA {
                         commands.add(toMap(cmd));
                     }
                     catch( JSONException e ) {
-                        throw new IHAException(e);
+                        throw new ControllerException(e);
                     }
                 }
                 map.put("commands", commands);
@@ -745,7 +747,7 @@ public class IHA {
                 if( f.exists() ) {
                     backup = new File(COMMAND_FILE + "." + System.currentTimeMillis());
                     if( !f.renameTo(backup) ) {
-                        throw new IHAException("Unable to make backup of configuration file");
+                        throw new ControllerException("Unable to make backup of configuration file");
                     }
                     f = new File(COMMAND_FILE);
                 }
@@ -767,18 +769,18 @@ public class IHA {
                 }
             }
             catch( IOException e ) {
-                throw new IHAException("Unable to save command file: " + e.getMessage());
+                throw new ControllerException("Unable to save command file: " + e.getMessage());
             }
         }
     }
 
-    private void saveConfiguration() throws IHAException {
+    private void saveConfiguration() throws ControllerException {
         synchronized( commandQueue ) {
             try {
                 loadConfiguration();
             }
             catch( Exception e ) {
-                throw new IHAException("Failed to load current system state: " + e.getMessage());
+                throw new ControllerException("Failed to load current system state: " + e.getMessage());
             }
             ArrayList<Map<String,Object>> all = new ArrayList<Map<String, Object>>();
             HashMap<String,Object> cfg = new HashMap<String, Object>();
@@ -810,7 +812,7 @@ public class IHA {
                 if( f.exists() ) {
                     backup = new File(CONFIG_FILE + "." + System.currentTimeMillis());
                     if( !f.renameTo(backup) ) {
-                        throw new IHAException("Unable to make backup of configuration file");
+                        throw new ControllerException("Unable to make backup of configuration file");
                     }
                     f = new File(CONFIG_FILE);
                 }
@@ -832,12 +834,12 @@ public class IHA {
                 }
             }
             catch( IOException e ) {
-                throw new IHAException("Unable to save configuration: " + e.getMessage());
+                throw new ControllerException("Unable to save configuration: " + e.getMessage());
             }
         }
     }
 
-    private void saveSchedule() throws IHAException {
+    private void saveSchedule() throws ControllerException {
         synchronized( commandQueue ) {
             ArrayList<Map<String,Object>> all = new ArrayList<Map<String,Object>>();
             HashMap<String,Object> cfg = new HashMap<String, Object>();
@@ -851,7 +853,7 @@ public class IHA {
                         commands.add(toMap(cmd));
                     }
                     catch( JSONException e ) {
-                        throw new IHAException(e);
+                        throw new ControllerException(e);
                     }
                 }
                 schedule.put("commands", commands);
@@ -868,7 +870,7 @@ public class IHA {
                 if( f.exists() ) {
                     backup = new File(SCHEDULER_FILE + "." + System.currentTimeMillis());
                     if( !f.renameTo(backup) ) {
-                        throw new IHAException("Unable to make backup of configuration file");
+                        throw new ControllerException("Unable to make backup of configuration file");
                     }
                     f = new File(SCHEDULER_FILE);
                 }
@@ -890,18 +892,18 @@ public class IHA {
                 }
             }
             catch( IOException e ) {
-                throw new IHAException("Unable to save command file: " + e.getMessage());
+                throw new ControllerException("Unable to save command file: " + e.getMessage());
             }
         }
     }
 
-    public void scheduleCommands(@Nonnull CloudService service, @Nonnull String scheduleId, @Nonnegative long executeAfter, @Nonnull JSONObject ... commands) throws IHAException {
+    public void scheduleCommands(@Nonnull CloudService service, @Nonnull String scheduleId, @Nonnegative long executeAfter, @Nonnull JSONObject ... commands) throws ControllerException {
         synchronized( commandQueue ) {
             if( !running ) {
-                throw new IHAException("Not currently accepting new commands");
+                throw new ControllerException("Not currently accepting new commands");
             }
             if( executeAfter < System.currentTimeMillis() ) {
-                throw new IHAException("Invalid execution time: " + formatDate(executeAfter));
+                throw new ControllerException("Invalid execution time: " + formatDate(executeAfter));
             }
             scheduler.add(new ScheduledCommandList(service.getServiceId(), scheduleId, executeAfter, commands));
             saveSchedule();

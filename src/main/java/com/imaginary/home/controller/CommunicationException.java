@@ -13,16 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.imaginary.home.lighting;
-
-import com.imaginary.home.controller.CommunicationException;
+package com.imaginary.home.controller;
 
 import javax.annotation.Nonnull;
 
-public interface LightingService {
-    public @Nonnull String getName();
+public class CommunicationException extends Exception {
+    private int statusCode = 0;
 
-    public Iterable<Light> listLights() throws CommunicationException;
+    public CommunicationException(@Nonnull String msg) {
+        super(msg);
+    }
 
-    public Iterable<ColorMode> listNativeColorModes();
+    public CommunicationException(@Nonnull Throwable cause) {
+        super(cause);
+    }
+
+    public CommunicationException(int statusCode, @Nonnull String msg) {
+        super(msg);
+        this.statusCode = statusCode;
+    }
+
+    public int getStatusCode() {
+        return statusCode;
+    }
 }
