@@ -18,6 +18,7 @@ package com.imaginary.home.cloud.api;
 
 import com.imaginary.home.cloud.Location;
 import org.apache.commons.codec.binary.Base64;
+import org.dasein.persist.PersistenceException;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -89,20 +90,28 @@ public class RestApi {
 
     public boolean authenticate(@Nonnull String requestId, @Nonnull String method, @Nonnull HttpServletRequest request, Map<String,Object> headers, Map<String,Object> parameters) throws RestException {
         Number timestamp = (Number)headers.get(TIMESTAMP);
-        String locationId = (String)headers.get(API_KEY);
+        String apiKey = (String)headers.get(API_KEY);
         String signature = (String)headers.get(SIGNATURE);
         String version = (String)headers.get(VERSION);
 
-        if( timestamp == null || locationId == null || signature == null || version == null ) {
+        if( timestamp == null || apiKey == null || signature == null || version == null ) {
             throw new RestException(HttpServletResponse.SC_BAD_REQUEST, "Incomplete authentication headers, requires: " + API_KEY + " - " + TIMESTAMP + " - " + SIGNATURE + " - " + VERSION);
         }
         if( signature.length() < 1 ) {
             throw new RestException(HttpServletResponse.SC_FORBIDDEN, "No signature was provided for authentication");
         }
-        Location location = null; // TODO: lookup location using locationId
+        try {
+            Location location = Location.getLocation(apiKey);
 
-        if( location == null ) {
-            throw new RestException(HttpServletResponse.SC_FORBIDDEN, "Access Denied", "Invalid API key");
+            if( location == null ) {
+                // TODO: non-hub access
+                throw new RestException(HttpServletResponse.SC_FORBIDDEN, "Access Denied", "Invalid API key");
+            }
+            // TODO: check signature
+            return true;
+        }
+        catch( PersistenceException e ) {
+            throw new RestException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage(), e);
         }
 
     }
