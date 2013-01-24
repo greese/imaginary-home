@@ -53,7 +53,7 @@ public class User implements CachedItem {
         state.put("email", email);
         state.put("firstName", firstName);
         state.put("lastName", lastName);
-        state.put("password", Configuration.encrypt(userId + ":" + password, password));
+        state.put("password", Configuration.encrypt(password, userId + ":" + password));
         state.put("locationIds", new String[0]);
 
         Transaction xaction = Transaction.getInstance();
@@ -144,6 +144,6 @@ public class User implements CachedItem {
     }
 
     public boolean isPasswordMatch(@Nonnull String password) {
-        return this.password.equals(Configuration.encrypt(userId + ":" + password, password));
+        return this.password.equals(Configuration.encrypt(password, userId + ":" + password));
     }
 }
