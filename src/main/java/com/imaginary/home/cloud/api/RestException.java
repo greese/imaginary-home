@@ -18,6 +18,7 @@ package com.imaginary.home.cloud.api;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
+import javax.servlet.http.HttpServletResponse;
 
 /**
  * [Class Documentation]
@@ -38,25 +39,28 @@ public class RestException extends Exception {
     public static final String MISSING_PAIRING_CODE = "MissingPairingCode";
     static public final String NO_SUCH_OBJECT       = "NoSuchObject";
     static public final String NO_SUCH_RESOURCE     = "NoSuchResource";
+    static public final String NO_SUCH_USER         = "NoSuchUser";
     static public final String NOT_PAIRED           = "NotPaired";
+    static public final String PAIRING_FAILURE      = "PairingFailure";
+    static public final String RELAY_NOT_ALLOWED    = "RelayNotAllowed";
+    static public final String USER_NOT_ALLOWED     = "UserNotAllowed";
 
-    private String description;
-    private int    status;
+    private String    description;
+    private int       status;
 
+    public RestException(@Nonnull Throwable t ) {
+        super(RestException.INTERNAL_ERROR, t);
+        this.status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
+        this.description = t.getMessage();
+    }
     public RestException(@Nonnegative int status, @Nonnull String description) {
         super(description);
         this.status = status;
         this.description = description;
     }
 
-    public RestException(@Nonnegative int status, @Nonnull String description, @Nonnull String message) {
+    public RestException(@Nonnegative int status, @Nonnull String message, @Nonnull String description) {
         super(message);
-        this.status = status;
-        this.description = description;
-    }
-
-    public RestException(@Nonnegative int status, @Nonnull String description, @Nonnull Throwable cause) {
-        super(cause);
         this.status = status;
         this.description = description;
     }

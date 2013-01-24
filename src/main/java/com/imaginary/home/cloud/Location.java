@@ -16,6 +16,7 @@
 
 package com.imaginary.home.cloud;
 
+import com.imaginary.home.cloud.user.User;
 import org.dasein.persist.Memento;
 import org.dasein.persist.PersistenceException;
 import org.dasein.persist.PersistentCache;
@@ -29,6 +30,7 @@ import org.dasein.util.CalendarWrapper;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.TimeZone;
 import java.util.UUID;
 
@@ -40,7 +42,7 @@ import java.util.UUID;
 public class Location implements CachedItem {
     static private PersistentCache<Location> locations;
 
-    static public Location create(@Nonnull String name, @Nonnull String description, @Nonnull TimeZone timeZone) throws PersistenceException {
+    static public Location create(@Nonnull String ownerId, @Nonnull String name, @Nonnull String description, @Nonnull TimeZone timeZone) throws PersistenceException {
         String locationId;
 
         do {
@@ -50,15 +52,13 @@ public class Location implements CachedItem {
         HashMap<String,Object> state = new HashMap<String, Object>();
 
         state.put("name", name);
+        state.put("ownerId", ownerId);
         state.put("description", description);
         state.put("timeZone", timeZone);
         state.put("locationId", locationId);
-        state.put("apiKeySecret", null);
-        state.put("paired", false);
         state.put("pairingCode", null);
         state.put("pairingExpiration", 0L);
         state.put("timeZone", timeZone);
-        state.put("token", null);
 
         Transaction xaction = Transaction.getInstance();
 
@@ -74,10 +74,10 @@ public class Location implements CachedItem {
     }
 
     static public  @Nullable Location findForPairing(@Nonnull String pairingCode) throws PersistenceException {
-        for( Location l : getCache().find(new SearchTerm("pairingCode", pairingCode)) ) {
-            if( !l.isPaired() ) {
-                return l;
-            }
+        Iterator<Location> it = getCache().find(new SearchTerm("pairingCode", pairingCode)).iterator();
+
+        if( it.hasNext() ) {
+            return it.next();
         }
         return null;
     }
@@ -94,21 +94,16 @@ public class Location implements CachedItem {
         return getCache().get(locationId);
     }
 
-    private String   apiKeySecret; // encrypted value
     private String   description;
     @Index(type= IndexType.PRIMARY)
     private String   locationId;
     private String   name;
-    private boolean  paired;
+    @Index(type=IndexType.FOREIGN, identifies=User.class)
+    private String   ownerId;
     @Index(type=IndexType.SECONDARY)
     private String   pairingCode;
     private long     pairingExpiration;
     private TimeZone timeZone;
-    private String   token;
-
-    public @Nullable String getApiKeySecret() {
-        return apiKeySecret;
-    }
 
     public @Nonnull String getDescription() {
         return description;
@@ -122,20 +117,16 @@ public class Location implements CachedItem {
         return name;
     }
 
+    public @Nonnull String getOwnerId() {
+        return ownerId;
+    }
+
     public @Nullable String getPairingCode() {
         return pairingCode;
     }
 
     public @Nonnull TimeZone getTimeZone() {
         return timeZone;
-    }
-
-    public @Nullable String getToken() {
-        return token;
-    }
-
-    public boolean isPaired() {
-        return paired;
     }
 
     @Override
@@ -166,23 +157,22 @@ public class Location implements CachedItem {
         this.timeZone = tz;
     }
 
-    public @Nullable String pair(@Nonnull String code, @Nullable TimeZone timeZone) throws PersistenceException {
+    public @Nullable ControllerRelay pair(@Nonnull String code, @Nonnull String relayName) throws PersistenceException {
         if( pairingExpiration < System.currentTimeMillis() ) {
             return null;
         }
         if( !code.equals(pairingCode) ) {
             return null;
         }
-        String key = Configuration.encrypt(pairingCode, Configuration.generateToken(20, 20));
+        ControllerRelay relay = ControllerRelay.create(this, relayName);
         HashMap<String,Object> state = new HashMap<String, Object>();
         Memento<Location> memento = new Memento<Location>(this);
 
         memento.save(state);
-        state.put("paired", true);
-        state.put("apiKeySecret", key);
-        if( timeZone != null ) {
-            state.put("timeZone", timeZone);
-        }
+
+        state.put("pairingCode", null);
+        state.put("pairingExpiration", 0);
+
         Transaction xaction = Transaction.getInstance();
 
         try {
@@ -192,12 +182,11 @@ public class Location implements CachedItem {
         finally {
             xaction.rollback();
         }
-        paired = true;
-        apiKeySecret = key;
-        if( timeZone != null ) {
-            this.timeZone = timeZone;
-        }
-        return Configuration.decrypt(pairingCode, apiKeySecret);
+
+        pairingCode = null;
+        pairingExpiration = 0L;
+
+        return relay;
     }
 
     public @Nonnull String readyForPairing() throws PersistenceException {
@@ -280,25 +269,6 @@ public class Location implements CachedItem {
             xaction.rollback();
         }
         this.timeZone = tz;
-    }
-
-    public void setToken(String token) throws PersistenceException {
-        HashMap<String,Object> state = new HashMap<String, Object>();
-        Memento<Location> memento = new Memento<Location>(this);
-
-        memento.save(state);
-        token = Configuration.encrypt(pairingCode, token);
-        state.put("token", token);
-        Transaction xaction = Transaction.getInstance();
-
-        try {
-            getCache().update(xaction, this, state);
-            xaction.commit();
-        }
-        finally {
-            xaction.rollback();
-        }
-        this.token = token;
     }
 }
 

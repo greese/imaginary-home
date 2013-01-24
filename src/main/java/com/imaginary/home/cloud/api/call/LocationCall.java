@@ -103,6 +103,15 @@ public class LocationCall extends APICall {
     @Override
     public void post(@Nonnull String requestId, @Nullable String userId, @Nonnull String[] path, @Nonnull HttpServletRequest req, @Nonnull HttpServletResponse resp, @Nonnull Map<String,Object> headers, @Nonnull Map<String,Object> parameters) throws RestException, IOException {
         try {
+            if( userId == null ) {
+                throw new RestException(HttpServletResponse.SC_FORBIDDEN, RestException.RELAY_NOT_ALLOWED, "A relay cannot add locations");
+            }
+            User user = User.getUserByUserId(userId);
+
+            if( user == null ) {
+                throw new RestException(HttpServletResponse.SC_FORBIDDEN, RestException.NO_SUCH_USER, "An error occurred identifying the user record for this key");
+            }
+
             BufferedReader reader = new BufferedReader(new InputStreamReader(req.getInputStream()));
             StringBuilder source = new StringBuilder();
             String line;
@@ -126,8 +135,11 @@ public class LocationCall extends APICall {
             if( name == null || description == null ) {
                 throw new RestException(HttpServletResponse.SC_BAD_REQUEST, RestException.MISSING_DATA, "Required fields: name, description");
             }
+
             TimeZone timeZone = (tz == null ? TimeZone.getTimeZone("UTC") : TimeZone.getTimeZone(tz));
-            Location location = Location.create(name, description, timeZone);
+            Location location = Location.create(userId, name, description, timeZone);
+
+            user.grant(location);
 
             resp.setStatus(HttpServletResponse.SC_CREATED);
             resp.getWriter().println((new JSONObject(toJSON(location))).toString());

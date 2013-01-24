@@ -17,19 +17,16 @@
 package com.imaginary.home.cloud.api;
 
 import com.imaginary.home.cloud.Configuration;
-import com.imaginary.home.cloud.Location;
+import com.imaginary.home.cloud.ControllerRelay;
 import com.imaginary.home.cloud.api.call.LocationCall;
 import com.imaginary.home.cloud.user.ApiKey;
 import com.imaginary.home.cloud.user.User;
 import com.imaginary.home.controller.CloudService;
-import org.apache.commons.codec.binary.Base64;
 import org.dasein.persist.PersistenceException;
 import org.json.JSONObject;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -38,18 +35,15 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.UUID;
 
 /**
- * [Class Documentation]
+ * Primary servlet dispatcher for incoming REST API calls. This class handles the incoming calls for both
+ * the external API and the controller relay API.
  * <p>Created by George Reese: 1/12/13 3:47 PM</p>
- *
  * @author George Reese
  */
 public class RestApi extends HttpServlet {
@@ -94,12 +88,12 @@ public class RestApi extends HttpServlet {
             throw new RestException(HttpServletResponse.SC_FORBIDDEN, "No signature was provided for authentication");
         }
         try {
-            Location location = Location.getLocation(apiKey);
+            ControllerRelay relay = ControllerRelay.getRelay(apiKey);
             String userId = null;
             String customSalt;
             String secret;
 
-            if( location == null ) {
+            if( relay == null ) {
                 ApiKey key = ApiKey.getApiKey(apiKey);
 
                 if( key == null ) {
@@ -110,22 +104,18 @@ public class RestApi extends HttpServlet {
                 customSalt = userId;
             }
             else {
-                secret = location.getApiKeySecret();
-                customSalt = location.getPairingCode();
-                if( customSalt == null ) {
-                    throw new RestException(HttpServletResponse.SC_FORBIDDEN, RestException.NOT_PAIRED, "Location is not paired");
-                }
+                secret = relay.getApiKeySecret();
+                customSalt = relay.getLocationId();
             }
             String stringToSign;
 
-            if( location != null ) {
-                stringToSign = method.toLowerCase() + ":" + request.getPathInfo().toLowerCase() + ":" + apiKey + ":" + location.getToken() + ":" + timestamp.longValue() + ":" + version;
+            if( relay != null ) {
+                String token = Configuration.decrypt(relay.getLocationId(), relay.getToken());
+
+                stringToSign = method.toLowerCase() + ":" + request.getPathInfo().toLowerCase() + ":" + apiKey + ":" + token + ":" + timestamp.longValue() + ":" + version;
             }
             else {
                 stringToSign = method.toLowerCase() + ":" + request.getPathInfo().toLowerCase() + ":" + apiKey + ":" + timestamp.longValue() + ":" + version;
-            }
-            if( secret == null ) {
-                throw new RestException(HttpServletResponse.SC_FORBIDDEN, "Illegal Access", "Illegal access to requested resource");
             }
             if( !signature.equals(CloudService.sign(Configuration.decrypt(customSalt, secret).getBytes("utf-8"), stringToSign)) ) {
                 throw new RestException(HttpServletResponse.SC_FORBIDDEN, "Invalid Signature", "String to sign was: " + stringToSign);
@@ -133,10 +123,10 @@ public class RestApi extends HttpServlet {
             return userId;
         }
         catch( PersistenceException e ) {
-            throw new RestException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage(), e);
+            throw new RestException(e);
         }
         catch( UnsupportedEncodingException e ) {
-            throw new RestException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage(), e);
+            throw new RestException(e);
         }
     }
 
@@ -300,40 +290,11 @@ public class RestApi extends HttpServlet {
                 resp.getWriter().println((new JSONObject(json)).toString());
                 resp.getWriter().flush();
             }
-            else if( path[0].equals("pair") ) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(req.getInputStream()));
-                StringBuilder source = new StringBuilder();
-                String line;
+            else if( path[0].equals("relay") ) {
+                Map<String,Object> parameters = parseParameters(req);
+                APICall call = apiCalls.get("relay");
 
-                while( (line = reader.readLine()) != null ) {
-                    source.append(line);
-                    source.append(" ");
-                }
-                JSONObject object = new JSONObject(source.toString());
-
-                if( !object.has("pairingCode") ) {
-                    throw new RestException(HttpServletResponse.SC_BAD_REQUEST, RestException.MISSING_PAIRING_CODE, "Pairing code is missing");
-                }
-                String code = object.getString("pairingCode");
-                Location location = Location.findForPairing(code);
-
-                if( location == null ) {
-                    throw new RestException(HttpServletResponse.SC_BAD_REQUEST, RestException.INVALID_PAIRING_CODE, "Invalid pairing code; pairing did not occur");
-                }
-                TimeZone timeZone = location.getTimeZone();
-
-                if( object.has("timeZone") && !object.isNull("timeZone") ) {
-                    timeZone = TimeZone.getTimeZone(object.getString("timeZone"));
-                }
-                String secret = location.pair(code, timeZone);
-
-                HashMap<String,Object> json = new HashMap<String, Object>();
-
-                json.put("locationId", location.getLocationId());
-                json.put("apiKeySecret", secret);
-                resp.setStatus(HttpServletResponse.SC_OK);
-                resp.getWriter().println((new JSONObject(json)).toString());
-                resp.getWriter().flush();
+                call.post(requestId, null, path, req, resp, headers, parameters);
             }
             else if( path[0].equals("user") ) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(req.getInputStream()));
@@ -363,7 +324,7 @@ public class RestApi extends HttpServlet {
                     throw new RestException(HttpServletResponse.SC_BAD_REQUEST, RestException.MISSING_DATA, "Required fields: email, firstName, lastName, password");
                 }
                 User user = User.create(email, firstName, lastName, password);
-                ApiKey key = ApiKey.create(user);
+                ApiKey key = ApiKey.create(user, "default");
 
                 HashMap<String,Object> json = new HashMap<String, Object>();
 
@@ -478,43 +439,32 @@ public class RestApi extends HttpServlet {
             throw new RestException(HttpServletResponse.SC_FORBIDDEN, "No signature was provided for authentication");
         }
         try {
-            Location location = Location.getLocation(apiKey);
+            ControllerRelay relay = ControllerRelay.getRelay(apiKey);
             String secret, customSalt;
 
-            if( location == null ) {
-                ApiKey key = ApiKey.getApiKey(apiKey);
-
-                if( key == null ) {
-                    throw new RestException(HttpServletResponse.SC_FORBIDDEN, RestException.INVALID_KEY, "Invalid API key");
-                }
+            if( relay == null ) {
                 throw new RestException(HttpServletResponse.SC_BAD_REQUEST, RestException.BAD_TOKEN, "User keys don't use token authentication");
             }
             else {
-                secret = location.getApiKeySecret();
-                customSalt = location.getPairingCode();
-                if( customSalt == null ) {
-                    throw new RestException(HttpServletResponse.SC_FORBIDDEN, RestException.NOT_PAIRED, "Location is not paired");
-                }
+                secret = relay.getApiKeySecret();
+                customSalt = relay.getLocationId();
             }
 
             String stringToSign = method.toLowerCase() + ":" + request.getPathInfo().toLowerCase() + ":" + apiKey + ":" + timestamp.longValue() + ":" + version;
 
-            if( secret == null ) {
-                throw new RestException(HttpServletResponse.SC_FORBIDDEN, "Illegal Access", "Illegal access to requested resource");
-            }
             if( signature.equals(CloudService.sign(Configuration.decrypt(customSalt, secret).getBytes("utf-8"), stringToSign)) ) {
                 String token = Configuration.generateToken(30, 45);
 
-                location.setToken(token);
+                relay.setToken(token);
                 return token;
             }
             throw new RestException(HttpServletResponse.SC_FORBIDDEN, "Illegal Access", "Illegal access to requested resource");
         }
         catch( PersistenceException e ) {
-            throw new RestException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage(), e);
+            throw new RestException(e);
         }
         catch( UnsupportedEncodingException e ) {
-            throw new RestException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage(), e);
+            throw new RestException(e);
         }
     }
 

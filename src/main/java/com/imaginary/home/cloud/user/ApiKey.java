@@ -27,7 +27,6 @@ import org.dasein.util.CachedItem;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.HashMap;
-import java.util.UUID;
 
 /**
  * [Class Documentation]
@@ -38,7 +37,7 @@ import java.util.UUID;
 public class ApiKey implements CachedItem {
     static private PersistentCache<ApiKey> cache;
 
-    static public @Nonnull ApiKey create(@Nonnull User forUser) throws PersistenceException {
+    static public @Nonnull ApiKey create(@Nonnull User forUser, @Nonnull String application) throws PersistenceException {
         String keyId;
 
         do {
@@ -49,6 +48,7 @@ public class ApiKey implements CachedItem {
         state.put("apiKeyId", keyId);
         state.put("apiKeySecret", Configuration.encrypt(forUser.getUserId(), Configuration.generateToken(20, 20)));
         state.put("userId", forUser.getUserId());
+        state.put("application", application);
 
         Transaction xaction = Transaction.getInstance();
 
@@ -78,6 +78,8 @@ public class ApiKey implements CachedItem {
     @Index(type= IndexType.PRIMARY)
     private String apiKeyId;
     private String apiKeySecret; // encrypted
+    @Index(type=IndexType.SECONDARY)
+    private String application;
     @Index(type=IndexType.FOREIGN, identifies = User.class)
     private String userId;
 
@@ -89,6 +91,10 @@ public class ApiKey implements CachedItem {
 
     public @Nonnull String getApiKeySecret() {
         return apiKeySecret;
+    }
+
+    public @Nonnull String getApplication() {
+        return application;
     }
 
     public @Nonnull String getUserId() {

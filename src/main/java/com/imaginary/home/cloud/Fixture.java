@@ -17,13 +17,10 @@
 package com.imaginary.home.cloud;
 
 /**
- * Cloud service reference to a home controller proxy. Each location must have one, but may (for whatever reason)
- * have more than one.
- * <p>Created by George Reese: 1/14/13 9:13 AM</p>
+ * [Class Documentation]
+ * <p>Created by George Reese: 1/24/13 1:57 PM</p>
+ *
  * @author George Reese
  */
-public class DeviceHub {
-    private String deviceHubId;
-    private String locationId;
-    private String name;
+public class Fixture {
 }

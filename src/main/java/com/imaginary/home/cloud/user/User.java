@@ -18,6 +18,7 @@ package com.imaginary.home.cloud.user;
 
 import com.imaginary.home.cloud.Configuration;
 import com.imaginary.home.cloud.Location;
+import org.dasein.persist.Memento;
 import org.dasein.persist.PersistenceException;
 import org.dasein.persist.PersistentCache;
 import org.dasein.persist.SearchTerm;
@@ -30,8 +31,10 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.TreeSet;
 import java.util.UUID;
 
 /**
@@ -136,6 +139,32 @@ public class User implements CachedItem {
 
     public @Nonnull String getUserId() {
         return userId;
+    }
+
+    public void grant(@Nonnull Location location) throws PersistenceException {
+        TreeSet<String> ids = new TreeSet<String>();
+
+        if( locationIds != null ) {
+            Collections.addAll(ids, locationIds);
+        }
+        ids.add(location.getLocationId());
+        String[] locationIds = ids.toArray(new String[ids.size()]);
+
+        HashMap<String,Object> state = new HashMap<String, Object>();
+        Memento<User> memento = new Memento<User>(this);
+
+        memento.save(state);
+        state.put("locationIds", locationIds);
+        Transaction xaction = Transaction.getInstance();
+
+        try {
+            getCache().update(xaction, this, state);
+            xaction.commit();
+        }
+        finally {
+            xaction.rollback();
+        }
+        this.locationIds = locationIds;
     }
 
     @Override
