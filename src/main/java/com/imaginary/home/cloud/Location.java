@@ -58,6 +58,7 @@ public class Location implements CachedItem {
         state.put("pairingCode", null);
         state.put("pairingExpiration", 0L);
         state.put("timeZone", timeZone);
+        state.put("token", null);
 
         Transaction xaction = Transaction.getInstance();
 
@@ -103,6 +104,11 @@ public class Location implements CachedItem {
     private String   pairingCode;
     private long     pairingExpiration;
     private TimeZone timeZone;
+    private String   token;
+
+    public @Nullable String getApiKeySecret() {
+        return apiKeySecret;
+    }
 
     public @Nonnull String getDescription() {
         return description;
@@ -118,6 +124,10 @@ public class Location implements CachedItem {
 
     public @Nonnull TimeZone getTimeZone() {
         return timeZone;
+    }
+
+    public @Nullable String getToken() {
+        return token;
     }
 
     public boolean isPaired() {
@@ -237,6 +247,25 @@ public class Location implements CachedItem {
             xaction.rollback();
         }
         this.timeZone = tz;
+    }
+
+    public void setToken(String token) throws PersistenceException {
+        HashMap<String,Object> state = new HashMap<String, Object>();
+        Memento<Location> memento = new Memento<Location>(this);
+
+        memento.save(state);
+        token = Configuration.encrypt(locationId, token);
+        state.put("token", token);
+        Transaction xaction = Transaction.getInstance();
+
+        try {
+            getCache().update(xaction, this, state);
+            xaction.commit();
+        }
+        finally {
+            xaction.rollback();
+        }
+        this.token = token;
     }
 }
 

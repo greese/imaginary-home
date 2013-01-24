@@ -26,6 +26,10 @@ import javax.annotation.Nonnull;
  * @author George Reese
  */
 public class RestException extends Exception {
+    static public final String INTERNAL_ERROR    = "InternalError";
+    static public final String INVALID_OPERATION = "InvalidOperation";
+    static public final String NO_SUCH_RESOURCE  = "NoSuchResource";
+
     private String description;
     private int    status;
 

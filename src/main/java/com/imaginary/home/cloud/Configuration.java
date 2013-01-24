@@ -32,9 +32,9 @@ import java.util.HashMap;
 import java.util.Random;
 
 /**
- * [Class Documentation]
+ * Represents the configuration of the cloud service. The rest of the system can fetch configuration data and
+ * interact with general utility operations via this singleton class.
  * <p>Created by George Reese: 1/23/13 2:50 PM</p>
- *
  * @author George Reese
  */
 public class Configuration implements CachedItem {
