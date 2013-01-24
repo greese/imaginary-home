@@ -73,7 +73,7 @@ public class Location implements CachedItem {
         }
     }
 
-    static private @Nullable Location findForPairing(@Nonnull String pairingCode) throws PersistenceException {
+    static public  @Nullable Location findForPairing(@Nonnull String pairingCode) throws PersistenceException {
         for( Location l : getCache().find(new SearchTerm("pairingCode", pairingCode)) ) {
             if( !l.isPaired() ) {
                 return l;
@@ -122,6 +122,10 @@ public class Location implements CachedItem {
         return name;
     }
 
+    public @Nullable String getPairingCode() {
+        return pairingCode;
+    }
+
     public @Nonnull TimeZone getTimeZone() {
         return timeZone;
     }
@@ -139,6 +143,29 @@ public class Location implements CachedItem {
         return false;
     }
 
+    public void modify(@Nonnull String name, @Nonnull String description, @Nonnull TimeZone tz) throws PersistenceException {
+        HashMap<String,Object> state = new HashMap<String, Object>();
+        Memento<Location> memento = new Memento<Location>(this);
+
+        memento.save(state);
+        state.put("name", name);
+        state.put("description", description);
+        state.put("timeZone", tz);
+
+        Transaction xaction = Transaction.getInstance();
+
+        try {
+            getCache().update(xaction, this, state);
+            xaction.commit();
+        }
+        finally {
+            xaction.rollback();
+        }
+        this.name = name;
+        this.description = description;
+        this.timeZone = tz;
+    }
+
     public @Nullable String pair(@Nonnull String code) throws PersistenceException {
         if( pairingExpiration < System.currentTimeMillis() ) {
             return null;
@@ -146,7 +173,7 @@ public class Location implements CachedItem {
         if( !code.equals(pairingCode) ) {
             return null;
         }
-        String key = Configuration.encrypt(locationId, Configuration.generateToken(20, 20));
+        String key = Configuration.encrypt(pairingCode, Configuration.generateToken(20, 20));
         HashMap<String,Object> state = new HashMap<String, Object>();
         Memento<Location> memento = new Memento<Location>(this);
 
@@ -164,7 +191,7 @@ public class Location implements CachedItem {
         }
         paired = true;
         apiKeySecret = key;
-        return Configuration.decrypt(locationId, apiKeySecret);
+        return Configuration.decrypt(pairingCode, apiKeySecret);
     }
 
     public @Nonnull String readyForPairing() throws PersistenceException {
@@ -254,7 +281,7 @@ public class Location implements CachedItem {
         Memento<Location> memento = new Memento<Location>(this);
 
         memento.save(state);
-        token = Configuration.encrypt(locationId, token);
+        token = Configuration.encrypt(pairingCode, token);
         state.put("token", token);
         Transaction xaction = Transaction.getInstance();
 

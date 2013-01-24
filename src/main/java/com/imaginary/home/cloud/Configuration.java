@@ -40,9 +40,9 @@ import java.util.Random;
 public class Configuration implements CachedItem {
     static private PersistentCache<Configuration> cache;
 
-    static public @Nonnull String decrypt(@Nonnull String locationId, @Nonnull String value) {
+    static public @Nonnull String decrypt(@Nonnull String keySalt, @Nonnull String value) {
         try {
-            SecretKeySpec spec = new SecretKeySpec(getConfiguration().getCustomSalt(locationId), "AES");
+            SecretKeySpec spec = new SecretKeySpec(getConfiguration().getCustomSalt(keySalt), "AES");
             Cipher cipher = Cipher.getInstance("AES");
 
             cipher.init(Cipher.DECRYPT_MODE, spec);
@@ -57,9 +57,9 @@ public class Configuration implements CachedItem {
         }
     }
 
-    static public @Nonnull String encrypt(@Nonnull String locationId, @Nonnull String value) {
+    static public @Nonnull String encrypt(@Nonnull String keySalt, @Nonnull String value) {
         try {
-            SecretKeySpec spec = new SecretKeySpec(getConfiguration().getCustomSalt(locationId), "AES");
+            SecretKeySpec spec = new SecretKeySpec(getConfiguration().getCustomSalt(keySalt), "AES");
             Cipher cipher = Cipher.getInstance("AES");
 
             cipher.init(Cipher.ENCRYPT_MODE, spec);

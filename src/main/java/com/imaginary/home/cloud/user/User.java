@@ -16,16 +16,134 @@
 
 package com.imaginary.home.cloud.user;
 
+import com.imaginary.home.cloud.Configuration;
+import com.imaginary.home.cloud.Location;
+import org.dasein.persist.PersistenceException;
+import org.dasein.persist.PersistentCache;
+import org.dasein.persist.SearchTerm;
+import org.dasein.persist.Transaction;
+import org.dasein.persist.annotations.Index;
+import org.dasein.persist.annotations.IndexType;
+import org.dasein.util.CachedItem;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.UUID;
+
 /**
- * [Class Documentation]
+ * An individual user with one or more locations that they can manage.
  * <p>Created by George Reese: 1/14/13 9:48 AM</p>
- *
  * @author George Reese
  */
-public class User {
+public class User implements CachedItem {
+    static private PersistentCache<User> cache;
+
+    static public User create(String email, String firstName, String lastName, String password) throws PersistenceException {
+        String userId;
+
+        do {
+            userId = UUID.randomUUID().toString();
+        } while( getUserByUserId(userId) != null );
+        HashMap<String,Object> state = new HashMap<String, Object>();
+
+        state.put("email", email);
+        state.put("firstName", firstName);
+        state.put("lastName", lastName);
+        state.put("password", Configuration.encrypt(userId + ":" + password, password));
+        state.put("locationIds", new String[0]);
+
+        Transaction xaction = Transaction.getInstance();
+
+        try {
+            User u = getCache().create(xaction, state);
+
+            xaction.commit();
+            return u;
+        }
+        finally {
+            xaction.rollback();
+        }
+    }
+
+    static private @Nonnull PersistentCache<User> getCache() throws PersistenceException {
+        if( cache == null ) {
+            //noinspection unchecked
+            cache = (PersistentCache<User>)PersistentCache.getCache(User.class);
+        }
+        return cache;
+    }
+
+    static public @Nullable User getUserByEmail(@Nonnull String email) throws PersistenceException {
+        return getCache().get(email.toLowerCase());
+    }
+
+    static public @Nullable User getUserByUserId(@Nonnull String userId) throws PersistenceException {
+        Iterator<User> users = getCache().find(new SearchTerm("userId", userId)).iterator();
+
+        if( !users.hasNext() ) {
+            return null;
+        }
+        return users.next();
+    }
+
+    static public Iterable<User> listUsersForLocation(@Nonnull Location location) throws PersistenceException {
+        return getCache().find(new SearchTerm("locationIds", location.getLocationId()));
+    }
+
+    @Index(type=IndexType.PRIMARY)
     private String   email;
     private String   firstName;
+    @Index(type=IndexType.SECONDARY, multi = { "firstName" }, cascade = true)
     private String   lastName;
+    @Index(type=IndexType.FOREIGN, identifies=Location.class)
     private String[] locationIds;
+    private String   password; // encrypted
+    @Index(type= IndexType.SECONDARY)
     private String   userId;
+
+    public User() { }
+
+    public @Nonnull String getEmail() {
+        return email;
+    }
+
+    public @Nonnull String getFirstName() {
+        return firstName;
+    }
+
+    public @Nonnull String getLastName() {
+        return lastName;
+    }
+
+    public @Nonnull Collection<Location> getLocations() throws PersistenceException {
+        ArrayList<Location> locations = new ArrayList<Location>();
+
+        if( locationIds != null ) {
+            for( String id : locationIds ) {
+                Location l = Location.getLocation(id);
+
+                if( l != null ) {
+                    locations.add(l);
+                }
+            }
+        }
+        return locations;
+    }
+
+    public @Nonnull String getUserId() {
+        return userId;
+    }
+
+    @Override
+    public boolean isValidForCache() {
+        return false;
+    }
+
+    public boolean isPasswordMatch(@Nonnull String password) {
+        return this.password.equals(Configuration.encrypt(userId + ":" + password, password));
+    }
 }
