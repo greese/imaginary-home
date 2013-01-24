@@ -21,6 +21,7 @@ import com.imaginary.home.cloud.Location;
 import com.imaginary.home.cloud.api.call.LocationCall;
 import com.imaginary.home.cloud.user.ApiKey;
 import com.imaginary.home.cloud.user.User;
+import com.imaginary.home.controller.CloudService;
 import org.apache.commons.codec.binary.Base64;
 import org.dasein.persist.PersistenceException;
 import org.json.JSONObject;
@@ -62,32 +63,6 @@ public class RestApi extends HttpServlet {
 
     static {
         apiCalls.put("location", new LocationCall());
-    }
-
-    static public String sign(byte[] key, String stringToSign) throws RestException {
-        try {
-            try {
-                Mac mac = Mac.getInstance("HmacSHA256");
-
-                mac.init(new SecretKeySpec(key, "HmacSHA256"));
-                return new String(Base64.encodeBase64(mac.doFinal(stringToSign.getBytes("utf-8"))));
-            }
-            catch( NoSuchAlgorithmException e ) {
-                throw new RestException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Encryption error: " + e.getMessage());
-            }
-            catch( InvalidKeyException e ) {
-                throw new RestException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Encryption error: " + e.getMessage());
-            }
-            catch( IllegalStateException e ) {
-                throw new RestException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Encryption error: " + e.getMessage());
-            }
-            catch( UnsupportedEncodingException e ) {
-                throw new RestException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Encryption error: " + e.getMessage());
-            }
-        }
-        catch( RuntimeException e ) {
-            throw new RestException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Signature error: " + e.getMessage());
-        }
     }
 
     static public boolean supports(@Nonnull String requiredVersion, @Nonnull String clientVersion) {
@@ -151,7 +126,7 @@ public class RestApi extends HttpServlet {
             if( secret == null ) {
                 throw new RestException(HttpServletResponse.SC_FORBIDDEN, "Illegal Access", "Illegal access to requested resource");
             }
-            if( !signature.equals(sign(Configuration.decrypt(customSalt, secret).getBytes("utf-8"), stringToSign)) ) {
+            if( !signature.equals(CloudService.sign(Configuration.decrypt(customSalt, secret).getBytes("utf-8"), stringToSign)) ) {
                 throw new RestException(HttpServletResponse.SC_FORBIDDEN, "Invalid Signature", "String to sign was: " + stringToSign);
             }
             return userId;
@@ -348,6 +323,7 @@ public class RestApi extends HttpServlet {
 
                 HashMap<String,Object> json = new HashMap<String, Object>();
 
+                json.put("locationId", location.getLocationId());
                 json.put("apiKeySecret", secret);
                 resp.setStatus(HttpServletResponse.SC_OK);
                 resp.getWriter().println((new JSONObject(json)).toString());
@@ -520,7 +496,7 @@ public class RestApi extends HttpServlet {
             if( secret == null ) {
                 throw new RestException(HttpServletResponse.SC_FORBIDDEN, "Illegal Access", "Illegal access to requested resource");
             }
-            if( signature.equals(sign(Configuration.decrypt(customSalt, secret).getBytes("utf-8"), stringToSign)) ) {
+            if( signature.equals(CloudService.sign(Configuration.decrypt(customSalt, secret).getBytes("utf-8"), stringToSign)) ) {
                 String token = Configuration.generateToken(30, 45);
 
                 location.setToken(token);

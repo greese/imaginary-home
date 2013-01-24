@@ -15,7 +15,6 @@
  */
 package com.imaginary.home.controller;
 
-import com.imaginary.home.cloud.CloudService;
 import com.imaginary.home.lighting.Light;
 import com.imaginary.home.lighting.LightingService;
 import org.dasein.util.CalendarWrapper;
@@ -75,8 +74,7 @@ public class HomeController {
         return fmt.format(cal.getTime());
     }
 
-    static public @Nonnull
-    HomeController getInstance() throws ControllerException {
+    static public @Nonnull HomeController getInstance() throws ControllerException {
         if( homeController == null ) {
             try {
                 homeController = new HomeController();
@@ -423,7 +421,8 @@ public class HomeController {
 
                 for( int i=0; i<list.length(); i++ ) {
                     JSONObject svc = list.getJSONObject(i);
-                    String name, endpoint, id;
+                    String name, endpoint, id, secret, proxyHost = null;
+                    int proxyPort = 0;
 
                     if( svc.has("endpoint") ) {
                         endpoint = svc.getString("endpoint");
@@ -437,13 +436,25 @@ public class HomeController {
                     else {
                         continue;
                     }
+                    if( svc.has("apiKeySecret") ) {
+                        secret = svc.getString("apiKeySecret");
+                    }
+                    else {
+                        continue;
+                    }
                     if( svc.has("name") ) {
                         name = svc.getString("name");
                     }
                     else {
                         name = endpoint;
                     }
-                    services.add(new CloudService(id, name, endpoint));
+                    if( svc.has("proxyHost") && !svc.isNull("proxyHost") ) {
+                        proxyHost = svc.getString("proxyHost");
+                    }
+                    if( svc.has("proxyPort") && !svc.isNull("proxyPort") ) {
+                        proxyPort = svc.getInt("proxyPort");
+                    }
+                    services.add(new CloudService(id, secret, name, endpoint, proxyHost, proxyPort));
                 }
             }
             this.cloudServices = services;
@@ -540,10 +551,9 @@ public class HomeController {
         return automationSystems.values();
     }
 
-    public @Nonnull String pairService(@Nonnull String name, @Nonnull String endpoint, @Nonnull String pairingToken) throws ControllerException, CommunicationException {
-        CloudService service = new CloudService(UUID.randomUUID().toString(), name, endpoint);
+    public @Nonnull String pairService(@Nonnull String name, @Nonnull String endpoint, @Nullable String proxyHost, int proxyPort, @Nonnull String pairingToken) throws ControllerException, CommunicationException {
+        CloudService service = CloudService.pair(name, endpoint, proxyHost, proxyPort, pairingToken);
 
-        service.pair(pairingToken);
         cloudServices.add(service);
         saveConfiguration();
         return service.getServiceId();
@@ -802,6 +812,11 @@ public class HomeController {
                 json.put("id", service.getServiceId());
                 json.put("name", service.getName());
                 json.put("endpoint", service.getEndpoint());
+                json.put("apiKeySecret", service.getApiKeySecret());
+                if( service.getProxyHost() != null ) {
+                    json.put("proxyHost", service.getProxyHost());
+                    json.put("proxyPort", service.getProxyPort());
+                }
                 all.add(json);
             }
             cfg.put("services", all);
