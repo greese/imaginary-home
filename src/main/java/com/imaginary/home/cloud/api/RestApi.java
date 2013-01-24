@@ -43,6 +43,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.UUID;
 
 /**
@@ -319,7 +320,12 @@ public class RestApi extends HttpServlet {
                 if( location == null ) {
                     throw new RestException(HttpServletResponse.SC_BAD_REQUEST, RestException.INVALID_PAIRING_CODE, "Invalid pairing code; pairing did not occur");
                 }
-                String secret = location.pair(code);
+                TimeZone timeZone = location.getTimeZone();
+
+                if( object.has("timeZone") && !object.isNull("timeZone") ) {
+                    timeZone = TimeZone.getTimeZone(object.getString("timeZone"));
+                }
+                String secret = location.pair(code, timeZone);
 
                 HashMap<String,Object> json = new HashMap<String, Object>();
 

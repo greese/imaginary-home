@@ -1,18 +1,33 @@
 imaginary-home
 ==============
 
-Imaginary Home is a Java API for home automation. It currently supports the managed of the Philips Hue lightbulbs, but
-I intend to add support for other household components as I progress in my own efforts of automating my house. The idea
-behind this library is to have something that can support a heterogeneous house made up of equipment from a variety of
-vendors. As you will see with the initial Hue lightbulbs, the concept has been abstracted so it can support other
-kinds of light bulbs without you needing to rewrite your tools.
+Imaginary Home is a suite of Open Source APIs for home automation. It includes both a reference implementation for
+a RESTful home automation API for cloud and home, but also a Java abstraction API for talking to devices and the
+REST API. Imaginary Home opens up the entire spectrum of home automation—not just the devices, but also remote interaction
+with them through cloud services.
 
-I have not set myself up to publish to Maven central and I haven't created a nice and tidy download yet. To use this
-library, you will currently need to fetch the source code and build it yourself. The command to build it is:
+A typical home automation system, for example, consists of the devices, a cloud service, and a controller relay that
+enables communication between the devices in the home and the cloud. Some systems open up the device API. Few open up
+the controller or cloud service elements. With Philips Hue, for example, the only way currently to remotely control
+your lights is through their iPhone app or web portal. To use tools you develop or other ecosystem tools, you must be
+inside your house. Even if they open up their cloud portal API, that portal controls only your Hue light bulbs, not the
+other devices in your home.
 
-> mvn -Dmaven.test.skip=true clean package
+The Imaginary Home API four components:
 
-This will build a JAR in the target/ directory and all of the supporting libraries will appear in target/lib.
+* An API-driven cloud service serving as a reference implementation for two REST APIs:
+** An externally-facing REST API for third-party tools to remotely manage your home
+** A controller relay API for enabling controller relays in the home to communicate with one or more cloud services
+* An API-driven controller relay service that also acts as a reference implementation for the relay side of the
+cloud service/relay API
+* A Java abstraction API for communicating with home automation devices
+* Reference implementations for various devices (such as Philips Hue)
+
+Because we don't have a 1.0 release yet, no official release is in Maven Central. However, snapshots are regularly
+published. The current Maven Central snapshot build is:
+* groupId -> com.imaginary
+* project ID -> imaginary-home
+* version -> 2013.01-SNAPSHOT
 
 If you want to quickly see what this library can do, run the unit tests. First, create a ~/.m2/settings.xml file that
 looks minimally like this:
@@ -44,8 +59,8 @@ A test will run for the next 5 to 10 minutes that will run through all of the fe
 Hue lightbulbs. To see the test source code, check out the HueTest.java class.
 
 This library comes with a command-line utility that provides command-line access to all of its features. To run it,
-you need to make sure all of the JARs in target/lib/ as well as the imaginary-home-2013.01-SNAPSHOT.jar from target/
-are in your CLASSPATH. You can then get the full help by typing:
+clone the imaginary-home source from GitHub, build the project, and make sure all of the JARs in target/lib/ as well as the
+imaginary-home-2013.01-SNAPSHOT.jar from target/ are in your CLASSPATH. You can then get the full help by typing:
 
 > java com.imaginary.home.lighting.Main
 

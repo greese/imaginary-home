@@ -166,7 +166,7 @@ public class Location implements CachedItem {
         this.timeZone = tz;
     }
 
-    public @Nullable String pair(@Nonnull String code) throws PersistenceException {
+    public @Nullable String pair(@Nonnull String code, @Nullable TimeZone timeZone) throws PersistenceException {
         if( pairingExpiration < System.currentTimeMillis() ) {
             return null;
         }
@@ -180,6 +180,9 @@ public class Location implements CachedItem {
         memento.save(state);
         state.put("paired", true);
         state.put("apiKeySecret", key);
+        if( timeZone != null ) {
+            state.put("timeZone", timeZone);
+        }
         Transaction xaction = Transaction.getInstance();
 
         try {
@@ -191,6 +194,9 @@ public class Location implements CachedItem {
         }
         paired = true;
         apiKeySecret = key;
+        if( timeZone != null ) {
+            this.timeZone = timeZone;
+        }
         return Configuration.decrypt(pairingCode, apiKeySecret);
     }
 

@@ -86,7 +86,7 @@ public class CloudService {
         return new DefaultHttpClient(params);
     }
 
-    static public CloudService pair(@Nonnull String name, @Nonnull String endpoint, @Nullable String proxyHost, int proxyPort, @Nonnull String pairingToken) throws CommunicationException {
+    static CloudService pair(@Nonnull String name, @Nonnull String endpoint, @Nullable String proxyHost, int proxyPort, @Nonnull String pairingToken) throws CommunicationException, ControllerException {
         HttpClient client = getClient(endpoint, proxyHost, proxyPort);
         HttpPost method = new HttpPost(endpoint + "/pair");
 
@@ -97,6 +97,7 @@ public class CloudService {
         HashMap<String,Object> body = new HashMap<String, Object>();
 
         body.put("pairingCode", pairingToken);
+        body.put("timeZone", HomeController.getInstance().getTimeZone().getID());
         try {
             //noinspection deprecation
             method.setEntity(new StringEntity((new JSONObject(body)).toString(), "application/json", "UTF-8"));

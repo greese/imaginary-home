@@ -102,6 +102,7 @@ public class HomeController {
     private long                                   lastLoad          = 0L;
     private boolean                                running           = false;
     private TreeSet<ScheduledCommandList>          scheduler;
+    private TimeZone                               timeZone;
 
     private HomeController() throws JSONException, ClassNotFoundException, IllegalAccessException, InstantiationException, IOException {
         automationSystems = new HashMap<String,HomeAutomationSystem>();
@@ -303,6 +304,10 @@ public class HomeController {
         return automationSystems.get(id);
     }
 
+    public @Nonnull TimeZone getTimeZone() {
+        return timeZone;
+    }
+
     private void loadCommands() throws IOException, JSONException {
         synchronized( commandQueue ) {
             BufferedReader reader;
@@ -385,6 +390,12 @@ public class HomeController {
             JSONObject cfg = new JSONObject(json.toString());
 
 
+            if( cfg.has("timeZone") && !cfg.isNull("timeZone") ) {
+                timeZone = TimeZone.getTimeZone(cfg.getString("timeZone"));
+            }
+            else {
+                timeZone = TimeZone.getDefault();
+            }
             if( cfg.has("systems") ) {
                 JSONArray list = cfg.getJSONArray("systems");
 
@@ -795,6 +806,7 @@ public class HomeController {
             ArrayList<Map<String,Object>> all = new ArrayList<Map<String, Object>>();
             HashMap<String,Object> cfg = new HashMap<String, Object>();
 
+            cfg.put("timeZone", timeZone.getID());
             for( HomeAutomationSystem sys : listSystems() ) {
                 HashMap<String,Object> json = new HashMap<String, Object>();
 
