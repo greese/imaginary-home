@@ -105,7 +105,7 @@ public class RestApi extends HttpServlet {
         return false;
     }
 
-    public void authenticate(@Nonnull String method, @Nonnull HttpServletRequest request, Map<String,Object> headers) throws RestException {
+    public @Nullable String authenticate(@Nonnull String method, @Nonnull HttpServletRequest request, Map<String,Object> headers) throws RestException {
         Number timestamp = (Number)headers.get(TIMESTAMP);
         String apiKey = (String)headers.get(API_KEY);
         String signature = (String)headers.get(SIGNATURE);
@@ -119,6 +119,7 @@ public class RestApi extends HttpServlet {
         }
         try {
             Location location = Location.getLocation(apiKey);
+            String userId = null;
             String customSalt;
             String secret;
 
@@ -129,7 +130,8 @@ public class RestApi extends HttpServlet {
                     throw new RestException(HttpServletResponse.SC_FORBIDDEN, RestException.INVALID_KEY, "Invalid API key");
                 }
                 secret = key.getApiKeySecret();
-                customSalt = key.getUserId();
+                userId = key.getUserId();
+                customSalt = userId;
             }
             else {
                 secret = location.getApiKeySecret();
@@ -152,6 +154,7 @@ public class RestApi extends HttpServlet {
             if( !signature.equals(sign(Configuration.decrypt(customSalt, secret).getBytes("utf-8"), stringToSign)) ) {
                 throw new RestException(HttpServletResponse.SC_FORBIDDEN, "Invalid Signature", "String to sign was: " + stringToSign);
             }
+            return userId;
         }
         catch( PersistenceException e ) {
             throw new RestException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage(), e);
@@ -176,8 +179,9 @@ public class RestApi extends HttpServlet {
                 Map<String,Object> parameters = parseParameters(req);
                 APICall call = apiCalls.get(path[0]);
 
-                authenticate("DELETE", req, headers);
-                call.delete(requestId, path, req, resp, headers, parameters);
+                String userId = authenticate("DELETE", req, headers);
+
+                call.delete(requestId, userId, path, req, resp, headers, parameters);
             }
             else {
                 throw new RestException(HttpServletResponse.SC_NOT_FOUND, RestException.NO_SUCH_RESOURCE, "No " + path[0] + " resource exists in this API");
@@ -222,8 +226,9 @@ public class RestApi extends HttpServlet {
                 Map<String,Object> parameters = parseParameters(req);
                 APICall call = apiCalls.get(path[0]);
 
-                authenticate("GET", req, headers);
-                call.get(requestId, path, req, resp, headers, parameters);
+                String userId = authenticate("GET", req, headers);
+
+                call.get(requestId, userId, path, req, resp, headers, parameters);
             }
             else {
                 throw new RestException(HttpServletResponse.SC_NOT_FOUND, RestException.NO_SUCH_RESOURCE, "No " + path[0] + " resource exists in this API");
@@ -268,8 +273,9 @@ public class RestApi extends HttpServlet {
                 Map<String,Object> parameters = parseParameters(req);
                 APICall call = apiCalls.get(path[0]);
 
-                authenticate("HEAD", req, headers);
-                call.head(requestId, path, req, resp, headers, parameters);
+                String userId = authenticate("HEAD", req, headers);
+
+                call.head(requestId, userId, path, req, resp, headers, parameters);
             }
             else {
                 throw new RestException(HttpServletResponse.SC_NOT_FOUND, RestException.NO_SUCH_RESOURCE, "No " + path[0] + " resource exists in this API");
@@ -400,8 +406,9 @@ public class RestApi extends HttpServlet {
                 Map<String,Object> parameters = parseParameters(req);
                 APICall call = apiCalls.get(path[0]);
 
-                authenticate("POST", req, headers);
-                call.post(requestId, path, req, resp, headers, parameters);
+                String userId = authenticate("POST", req, headers);
+
+                call.post(requestId, userId, path, req, resp, headers, parameters);
             }
             else {
                 throw new RestException(HttpServletResponse.SC_NOT_FOUND, RestException.NO_SUCH_RESOURCE, "No " + path[0] + " resource exists in this API");
@@ -445,8 +452,9 @@ public class RestApi extends HttpServlet {
                 Map<String,Object> parameters = parseParameters(req);
                 APICall call = apiCalls.get(path[0]);
 
-                authenticate("PUT", req, headers);
-                call.delete(requestId, path, req, resp, headers, parameters);
+                String userId = authenticate("PUT", req, headers);
+
+                call.delete(requestId, userId, path, req, resp, headers, parameters);
             }
             else {
                 throw new RestException(HttpServletResponse.SC_NOT_FOUND, RestException.NO_SUCH_RESOURCE, "No " + path[0] + " resource exists in this API");

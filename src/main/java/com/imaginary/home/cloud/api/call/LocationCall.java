@@ -18,29 +18,36 @@ package com.imaginary.home.cloud.api.call;
 
 import com.imaginary.home.cloud.Location;
 import com.imaginary.home.cloud.api.APICall;
+import com.imaginary.home.cloud.api.RestApi;
 import com.imaginary.home.cloud.api.RestException;
+import com.imaginary.home.cloud.user.User;
 import org.dasein.persist.PersistenceException;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 
 /**
- * [Class Documentation]
+ * API call for access to {@link com.imaginary.home.cloud.Location} resources.
  * <p>Created by George Reese: 1/23/13 9:30 PM</p>
- *
  * @author George Reese
  */
 public class LocationCall extends APICall {
-    public void get(@Nonnull String requestId, @Nonnull String[] path, @Nonnull HttpServletRequest req, @Nonnull HttpServletResponse resp, @Nonnull Map<String,Object> headers, @Nonnull Map<String,Object> parameters) throws RestException, IOException {
+    @Override
+    public void get(@Nonnull String requestId, @Nullable String userId, @Nonnull String[] path, @Nonnull HttpServletRequest req, @Nonnull HttpServletResponse resp, @Nonnull Map<String,Object> headers, @Nonnull Map<String,Object> parameters) throws RestException, IOException {
         try {
             String locationId = (path.length > 1 ? path[1] : null);
 
@@ -55,8 +62,37 @@ public class LocationCall extends APICall {
                 resp.getWriter().flush();
             }
             else {
-                // TODO: load current user
-                // TODO: list locations
+                Collection<Location> locations;
+
+                if( userId == null ) {
+                    String apiKey = (String)headers.get(RestApi.API_KEY);
+                    Location location = Location.getLocation(apiKey);
+
+                    if( location == null ) {
+                        locations = Collections.emptyList();
+                    }
+                    else {
+                        locations = Collections.singletonList(location);
+                    }
+                }
+                else {
+                    User user = User.getUserByUserId(userId);
+
+                    if( user == null ) {
+                        locations = Collections.emptyList();
+                    }
+                    else {
+                        locations = user.getLocations();
+                    }
+                }
+                ArrayList<Map<String,Object>> list = new ArrayList<Map<String, Object>>();
+
+                for( Location l : locations ) {
+                    list.add(toJSON(l));
+                }
+                resp.setStatus(HttpServletResponse.SC_OK);
+                resp.getWriter().println((new JSONArray(list)).toString());
+                resp.getWriter().flush();
             }
         }
         catch( PersistenceException e ) {
@@ -64,7 +100,8 @@ public class LocationCall extends APICall {
         }
     }
 
-    public void post(@Nonnull String requestId, @Nonnull String[] path, @Nonnull HttpServletRequest req, @Nonnull HttpServletResponse resp, @Nonnull Map<String,Object> headers, @Nonnull Map<String,Object> parameters) throws RestException, IOException {
+    @Override
+    public void post(@Nonnull String requestId, @Nullable String userId, @Nonnull String[] path, @Nonnull HttpServletRequest req, @Nonnull HttpServletResponse resp, @Nonnull Map<String,Object> headers, @Nonnull Map<String,Object> parameters) throws RestException, IOException {
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(req.getInputStream()));
             StringBuilder source = new StringBuilder();
@@ -104,7 +141,8 @@ public class LocationCall extends APICall {
         }
     }
 
-    public void put(@Nonnull String requestId, @Nonnull String[] path, @Nonnull HttpServletRequest req, @Nonnull HttpServletResponse resp, @Nonnull Map<String,Object> headers, @Nonnull Map<String,Object> parameters) throws RestException, IOException {
+    @Override
+    public void put(@Nonnull String requestId, @Nullable String userId, @Nonnull String[] path, @Nonnull HttpServletRequest req, @Nonnull HttpServletResponse resp, @Nonnull Map<String,Object> headers, @Nonnull Map<String,Object> parameters) throws RestException, IOException {
         try {
             String locationId = (path.length > 1 ? path[1] : null);
             Location location = null;
