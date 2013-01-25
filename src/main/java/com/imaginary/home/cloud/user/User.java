@@ -57,6 +57,7 @@ public class User implements CachedItem {
         state.put("firstName", firstName);
         state.put("lastName", lastName);
         state.put("password", Configuration.encrypt(password, userId + ":" + password));
+        state.put("pairingPassword", Configuration.encrypt(password, userId + ":" + password));
         state.put("locationIds", new String[0]);
 
         Transaction xaction = Transaction.getInstance();
@@ -104,6 +105,7 @@ public class User implements CachedItem {
     private String   lastName;
     @Index(type=IndexType.FOREIGN, identifies=Location.class)
     private String[] locationIds;
+    private String   pairingPassword; // encrypted
     private String   password; // encrypted
     @Index(type= IndexType.SECONDARY)
     private String   userId;
@@ -174,5 +176,38 @@ public class User implements CachedItem {
 
     public boolean isPasswordMatch(@Nonnull String password) {
         return this.password.equals(Configuration.encrypt(password, userId + ":" + password));
+    }
+
+    public boolean isPairingPasswordMatch(@Nonnull String pairingCode) {
+        return this.pairingPassword.equals(Configuration.encrypt(pairingCode, userId + ":" + pairingCode));
+    }
+
+    public void revoke(@Nonnull Location location) throws PersistenceException {
+        TreeSet<String> ids = new TreeSet<String>();
+
+        if( locationIds != null ) {
+            for( String id : locationIds ) {
+                if( !id.equals(location.getLocationId()) ) {
+                    ids.add(id);
+                }
+            }
+        }
+        String[] locationIds = ids.toArray(new String[ids.size()]);
+
+        HashMap<String,Object> state = new HashMap<String, Object>();
+        Memento<User> memento = new Memento<User>(this);
+
+        memento.save(state);
+        state.put("locationIds", locationIds);
+        Transaction xaction = Transaction.getInstance();
+
+        try {
+            getCache().update(xaction, this, state);
+            xaction.commit();
+        }
+        finally {
+            xaction.rollback();
+        }
+        this.locationIds = locationIds;
     }
 }

@@ -16,6 +16,7 @@
 package com.imaginary.home.device.hue;
 
 import com.imaginary.home.controller.CommunicationException;
+import com.imaginary.home.controller.ControllerException;
 import com.imaginary.home.controller.HomeController;
 import com.imaginary.home.lighting.Color;
 import com.imaginary.home.lighting.ColorMode;
@@ -29,6 +30,7 @@ import org.json.JSONObject;
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -499,6 +501,66 @@ public class HueBulb implements Light {
     @Override
     public boolean supportsColorChanges() {
         return true;
+    }
+
+    @Override
+    public void toMap(@Nonnull Map<String,Object> map) throws CommunicationException {
+        String resource = "lights/" + bulbId;
+        HueMethod method = new HueMethod(hue);
+
+        JSONObject json = method.get(resource);
+
+        if( json == null || !json.has("state") ) {
+            throw new CommunicationException("No state found for " + bulbId);
+        }
+        try {
+            JSONObject state = json.getJSONObject("state");
+
+            map.put("on", state.has("on") && !state.isNull("on") && state.getBoolean("on"));
+            if( state.has("modelid") && !state.isNull("modelid") ) {
+                map.put("model", state.getString("modelid"));
+            }
+            if( state.has("colormode") ) {
+                String mode = state.getString("colormode");
+
+
+                if( mode.equalsIgnoreCase("xy") ) {
+                    JSONArray arr = state.getJSONArray("xy");
+
+                    map.put("color", new Color(ColorMode.CIEXYZ, (float)arr.getDouble(0), (float)arr.getDouble(1)));
+                }
+                else if( mode.equalsIgnoreCase("ct") ) {
+                    int warmth = (state.has("ct") ? state.getInt("ct") : 154);
+                    int brightness = (state.has("bri") ? state.getInt("bri") : 0);
+
+                    map.put("color", new Color(ColorMode.CT, warmth, brightness/254));
+                }
+                else {
+                    float h = (state.has("hue") ? (float)state.getDouble("hue")/182.04f : 360f);
+                    int s = (state.has("sat") ? (state.getInt("sat")*100)/255 : 100);
+
+                    map.put("color", new Color(ColorMode.HSV, h, s));
+                }
+            }
+            else {
+                throw new CommunicationException("No color information is present");
+            }
+        }
+        catch( JSONException e ) {
+            throw new HueException(e);
+        }
+        map.put("deviceId", bulbId);
+        map.put("supportsColorChanges", supportsColorChanges());
+        map.put("supportsBrightnessChanges", supportsBrightnessChanges());
+        map.put("name", name);
+        map.put("description", name);
+        map.put("deviceType", "light");
+        ArrayList<ColorMode> modes = new ArrayList<ColorMode>();
+
+        for( ColorMode m : hue.listNativeColorModes() ) {
+            modes.add(m);
+        }
+        map.put("colorModes", modes);
     }
 
     public String toString() {

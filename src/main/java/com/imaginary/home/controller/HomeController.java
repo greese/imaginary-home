@@ -100,9 +100,9 @@ public class HomeController {
     private List<CloudService>                     cloudServices;
     private final LinkedList<CommandList>          commandQueue      = new LinkedList<CommandList>();
     private long                                   lastLoad          = 0L;
+    private String                                 name;
     private boolean                                running           = false;
     private TreeSet<ScheduledCommandList>          scheduler;
-    private TimeZone                               timeZone;
 
     private HomeController() throws JSONException, ClassNotFoundException, IllegalAccessException, InstantiationException, IOException {
         automationSystems = new HashMap<String,HomeAutomationSystem>();
@@ -291,6 +291,10 @@ public class HomeController {
         }
     }
 
+    public @Nonnull String getName() {
+        return name;
+    }
+
     public @Nullable CloudService getService(@Nonnull String id) {
         for( CloudService svc : cloudServices ) {
             if( svc.getServiceId().equals(id) ) {
@@ -302,10 +306,6 @@ public class HomeController {
 
     public @Nullable HomeAutomationSystem getSystem(@Nonnull String id) {
         return automationSystems.get(id);
-    }
-
-    public @Nonnull TimeZone getTimeZone() {
-        return timeZone;
     }
 
     private void loadCommands() throws IOException, JSONException {
@@ -389,12 +389,11 @@ public class HomeController {
             }
             JSONObject cfg = new JSONObject(json.toString());
 
-
-            if( cfg.has("timeZone") && !cfg.isNull("timeZone") ) {
-                timeZone = TimeZone.getTimeZone(cfg.getString("timeZone"));
+            if( cfg.has("name") && !cfg.isNull("name") ) {
+                name = cfg.getString("name");
             }
             else {
-                timeZone = TimeZone.getDefault();
+                name = "Imaginary Home Controller Relay";
             }
             if( cfg.has("systems") ) {
                 JSONArray list = cfg.getJSONArray("systems");
@@ -562,6 +561,7 @@ public class HomeController {
         return automationSystems.values();
     }
 
+    // TODO: identify a mechanism for initiating this pairing call
     public @Nonnull String pairService(@Nonnull String name, @Nonnull String endpoint, @Nullable String proxyHost, int proxyPort, @Nonnull String pairingToken) throws ControllerException, CommunicationException {
         CloudService service = CloudService.pair(name, endpoint, proxyHost, proxyPort, pairingToken);
 
@@ -603,32 +603,37 @@ public class HomeController {
             synchronized( commandQueue ) {
                 try { commandQueue.wait(pollWait); }
                 catch( InterruptedException ignore ) { }
-                if( !running ) {
-                    return;
-                }
-                if( System.currentTimeMillis() > nextState ) {
-                    boolean hasCommands = service.postState();
+                try {
+                    if( !running ) {
+                        return;
+                    }
+                    if( System.currentTimeMillis() > nextState ) {
+                        boolean hasCommands = service.postState();
 
-                    nextState = System.currentTimeMillis() + CalendarWrapper.MINUTE;
-                    if( hasCommands ) {
-                        service.fetchCommands();
-                        pollWait = (10L * CalendarWrapper.SECOND);
-                    }
-                    else {
-                        pollWait = CalendarWrapper.MINUTE;
-                    }
-                }
-                else {
-                    if( service.hasCommands() ) {
-                        service.fetchCommands();
-                        pollWait = (10L * CalendarWrapper.SECOND);
-                    }
-                    else {
-                        pollWait = pollWait*2;
-                        if( pollWait > CalendarWrapper.MINUTE ) {
+                        nextState = System.currentTimeMillis() + CalendarWrapper.MINUTE;
+                        if( hasCommands ) {
+                            service.fetchCommands();
+                            pollWait = (10L * CalendarWrapper.SECOND);
+                        }
+                        else {
                             pollWait = CalendarWrapper.MINUTE;
                         }
                     }
+                    else {
+                        if( service.hasCommands() ) {
+                            service.fetchCommands();
+                            pollWait = (10L * CalendarWrapper.SECOND);
+                        }
+                        else {
+                            pollWait = pollWait*2;
+                            if( pollWait > CalendarWrapper.MINUTE ) {
+                                pollWait = CalendarWrapper.MINUTE;
+                            }
+                        }
+                    }
+                }
+                catch( Throwable t ) {
+                    t.printStackTrace();
                 }
             }
         }
@@ -806,7 +811,7 @@ public class HomeController {
             ArrayList<Map<String,Object>> all = new ArrayList<Map<String, Object>>();
             HashMap<String,Object> cfg = new HashMap<String, Object>();
 
-            cfg.put("timeZone", timeZone.getID());
+            cfg.put("name", name);
             for( HomeAutomationSystem sys : listSystems() ) {
                 HashMap<String,Object> json = new HashMap<String, Object>();
 

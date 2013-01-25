@@ -17,6 +17,7 @@ package com.imaginary.home.controller;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Map;
 
 /**
  * Any resource managed within a home automation system.
@@ -38,4 +39,6 @@ public interface ManagedResource {
      * @return the unique ID of this resource in the home automation system
      */
     public @Nonnull String getProviderId();
+
+    public void toMap(Map<String,Object> map) throws CommunicationException;
 }

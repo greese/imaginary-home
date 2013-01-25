@@ -123,6 +123,25 @@ public class ControllerRelay implements CachedItem {
         return false;
     }
 
+    public void modify(@Nonnull String name) throws PersistenceException {
+        HashMap<String,Object> state = new HashMap<String, Object>();
+        Memento<ControllerRelay> memento = new Memento<ControllerRelay>(this);
+
+        memento.save(state);
+        token = Configuration.encrypt(locationId, token);
+        state.put("name", name);
+        Transaction xaction = Transaction.getInstance();
+
+        try {
+            getCache().update(xaction, this, state);
+            xaction.commit();
+        }
+        finally {
+            xaction.rollback();
+        }
+        this.name = name;
+    }
+
     public void setToken(@Nonnull String token) throws PersistenceException {
         HashMap<String,Object> state = new HashMap<String, Object>();
         Memento<ControllerRelay> memento = new Memento<ControllerRelay>(this);
