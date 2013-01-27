@@ -28,6 +28,7 @@ import javax.servlet.http.HttpServletResponse;
  */
 public class RestException extends Exception {
     static public final String BAD_TOKEN            = "BadToken";
+    static public final String INCOMPLETE_HEADERS   = "IncompleteHeaders";
     static public final String INTERNAL_ERROR       = "InternalError";
     static public final String INVALID_ACTION       = "InvalidAction";
     static public final String INVALID_JSON         = "InvalidJSON";
@@ -37,6 +38,7 @@ public class RestException extends Exception {
     static public final String INVALID_PUT          = "InvalidPut";
     static public final String MISSING_DATA         = "MissingData";
     public static final String MISSING_PAIRING_CODE = "MissingPairingCode";
+    static public final String NO_SIGNATURE         = "NoSignature";
     static public final String NO_SUCH_OBJECT       = "NoSuchObject";
     static public final String NO_SUCH_RESOURCE     = "NoSuchResource";
     static public final String NO_SUCH_USER         = "NoSuchUser";

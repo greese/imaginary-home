@@ -56,9 +56,17 @@ import java.util.concurrent.TimeUnit;
 public class HomeController {
     static public final ExecutorService executorService = Executors.newCachedThreadPool();
 
-    static public final String COMMAND_FILE   = "/etc/imaginary/iha/command.cfg";
-    static public final String CONFIG_FILE    = "/etc/imaginary/iha/iha.cfg";
-    static public final String SCHEDULER_FILE = "/etc/imaginary/iha/schedule.cfg";
+    static public final String COMMAND_FILE;
+    static public final String CONFIG_FILE;
+    static public final String SCHEDULER_FILE;
+
+    static {
+        String root = System.getProperty("ihaCfgRoot", "/etc/imaginary");
+
+        COMMAND_FILE = root + "/iha/command.cfg";
+        CONFIG_FILE = root + "/iha/iha.cfg";
+        SCHEDULER_FILE = root + "/iha/schedule.cfg";
+    }
 
     static private HomeController homeController;
 
@@ -80,6 +88,7 @@ public class HomeController {
                 homeController = new HomeController();
             }
             catch( Exception e ) {
+                e.printStackTrace();
                 throw new ControllerException("Unable to load system: " + e.getMessage());
             }
         }
@@ -316,7 +325,6 @@ public class HomeController {
                 reader = new BufferedReader(new InputStreamReader(new FileInputStream(COMMAND_FILE)));
             }
             catch( IOException e ) {
-                e.printStackTrace();
                 return;
             }
             StringBuilder json = new StringBuilder();
@@ -410,16 +418,24 @@ public class HomeController {
 
                     JSONObject p;
 
-                    if( sys.has("authenticationProperties") ) {
+                    if( sys.has("authenticationProperties") && !sys.isNull("authenticationProperties") ) {
                         p = sys.getJSONObject("authenticationProperties");
-                        for( String key : JSONObject.getNames(p) ) {
-                            auth.put(key, p.getString(key));
+                        String[] names = JSONObject.getNames(p);
+
+                        if( names != null ) {
+                            for( String key : names ) {
+                                auth.put(key, p.getString(key));
+                            }
                         }
                     }
-                    if( sys.has("customProperties") ) {
+                    if( sys.has("customProperties") && !sys.isNull("customProperties") ) {
                         p = sys.getJSONObject("customProperties");
-                        for( String key : JSONObject.getNames(p) ) {
-                            auth.put(key, p.getString(key));
+                        String[] names = JSONObject.getNames(p);
+
+                        if( names != null ) {
+                            for( String key : names ) {
+                                auth.put(key, p.getString(key));
+                            }
                         }
                     }
                     system.init(id, auth, custom);

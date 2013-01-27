@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Base class for any kind of device.
@@ -53,6 +54,15 @@ public abstract class Device implements CachedItem {
 
         PoweredDevice.findPoweredDevicesForRelayWithChildren(relay, devices);
         return devices;
+    }
+
+    static public @Nullable Device getDevice(@Nonnull String deviceId) throws PersistenceException {
+        Device d = Light.getLight(deviceId);
+
+        if( d == null ) {
+            d = PoweredDevice.getPoweredDevice(deviceId);
+        }
+        return d;
     }
 
     static public @Nullable Device getDevice(@Nonnull String deviceType, @Nonnull String deviceId) throws PersistenceException {
@@ -78,7 +88,10 @@ public abstract class Device implements CachedItem {
         }
         if( json.has("id") && !json.isNull("id") ) {
             state.put("vendorDeviceId", json.getString("id"));
-            state.put("deviceId", relay.getControllerRelayId() + ":" + json.getString("id"));
+            state.put("deviceId", UUID.randomUUID().toString());
+        }
+        if( json.has("systemId") && !json.isNull("systemId") ) {
+            state.put("homeAutomationSystemId", json.getString("systemId"));
         }
     }
 
@@ -87,12 +100,13 @@ public abstract class Device implements CachedItem {
     private String deviceId;
     private String deviceType;
     private String fixtureId;
+    @Index(type=IndexType.SECONDARY, multi = { "vendorDeviceId" }, cascade=true)
+    private String homeAutomationSystemId;
     @Index(type=IndexType.SECONDARY)
     private String model;
     private String name;
     @Index(type=IndexType.FOREIGN, identifies=ControllerRelay.class)
     private String relayId;
-    @Index(type=IndexType.SECONDARY, multi = { "relayId" }, cascade=true)
     private String vendorDeviceId;
 
     public Device() { }
@@ -111,6 +125,10 @@ public abstract class Device implements CachedItem {
 
     public @Nullable String getFixtureId() {
         return fixtureId;
+    }
+
+    public @Nonnull String getHomeAutomationSystemId() {
+        return homeAutomationSystemId;
     }
 
     public @Nullable String getModel() {

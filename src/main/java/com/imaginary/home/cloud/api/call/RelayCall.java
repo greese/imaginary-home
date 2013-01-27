@@ -18,6 +18,7 @@ package com.imaginary.home.cloud.api.call;
 
 import com.imaginary.home.cloud.Configuration;
 import com.imaginary.home.cloud.ControllerRelay;
+import com.imaginary.home.cloud.PendingCommand;
 import com.imaginary.home.cloud.device.Device;
 import com.imaginary.home.cloud.Location;
 import com.imaginary.home.cloud.api.APICall;
@@ -198,7 +199,7 @@ public class RelayCall extends APICall {
                     }
                 }
             }
-            resp.addHeader("x-imaginary-has-commands", "false"); // TODO: fix this
+            resp.addHeader("x-imaginary-has-commands", String.valueOf(PendingCommand.hasCommands(relay)));
             resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
         }
         catch( PersistenceException e ) {

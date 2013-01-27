@@ -59,6 +59,7 @@ public class User implements CachedItem {
         state.put("password", Configuration.encrypt(password, userId + ":" + password));
         state.put("pairingPassword", Configuration.encrypt(password, userId + ":" + password));
         state.put("locationIds", new String[0]);
+        state.put("userId", userId);
 
         Transaction xaction = Transaction.getInstance();
 

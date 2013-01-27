@@ -16,6 +16,7 @@
 
 package com.imaginary.home.cloud.api.call;
 
+import com.imaginary.home.cloud.ControllerRelay;
 import com.imaginary.home.cloud.Location;
 import com.imaginary.home.cloud.api.APICall;
 import com.imaginary.home.cloud.api.RestApi;
@@ -66,8 +67,15 @@ public class LocationCall extends APICall {
 
                 if( userId == null ) {
                     String apiKey = (String)headers.get(RestApi.API_KEY);
-                    Location location = Location.getLocation(apiKey);
+                    Location location = null;
 
+                    if( apiKey != null ) {
+                        ControllerRelay relay = ControllerRelay.getRelay(apiKey);
+
+                        if( relay != null ) {
+                            location = relay.getLocation();
+                        }
+                    }
                     if( location == null ) {
                         locations = Collections.emptyList();
                     }

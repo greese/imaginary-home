@@ -42,19 +42,30 @@ public class Command {
     private String     commandId;
     private String[]   resourceIds;
     private String     systemId;
-    private String     service;
+    //private String     service;
     private long       timeout;
 
     public Command(JSONObject command) throws JSONException {
-        commandId = UUID.randomUUID().toString();
+        if( command.has("commandId") ) {
+            commandId = command.getString("commandId");
+        }
+        else {
+            throw new JSONException("Missing the commandId");
+        }
         if( command.has("systemId") ) {
             systemId = command.getString("systemId");
         }
-        if( command.has("service") ) {
-            service = command.getString("service");
+        else {
+            throw new JSONException("Missing the systemId");
         }
+        //if( command.has("service") ) {
+          //  service = command.getString("service");
+        //}
         if( command.has("command") ) {
             this.command = command.getString("command");
+        }
+        else {
+            throw new JSONException("Missing the command");
         }
         if( command.has("arguments") ) {
             arguments = command.getJSONObject("arguments");
@@ -66,6 +77,9 @@ public class Command {
             for( int i=0; i<ids.length(); i++ ) {
                 resourceIds[i] = ids.getString(i);
             }
+        }
+        if( resourceIds == null || resourceIds.length < 1 ) {
+            throw new JSONException("Empty resource IDs");
         }
         if( command.has("timeout") ) {
             timeout = command.getLong("timeout");
@@ -83,11 +97,9 @@ public class Command {
         }
         ArrayList<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
 
-        if( service.equalsIgnoreCase("lighting") ) {
-            if( !(system instanceof LightingService) ) {
-                throw new ControllerException("No lighting support exists in " + system);
-            }
+        if( system  instanceof LightingService ) {
             LightingService svc = (LightingService)system;
+
             for( Light light : svc.listLights() ) {
                 boolean included = (resourceIds == null);
 

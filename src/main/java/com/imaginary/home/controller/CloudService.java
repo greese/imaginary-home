@@ -33,6 +33,8 @@ import org.apache.http.params.HttpParams;
 import org.apache.http.params.HttpProtocolParams;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
+import org.dasein.util.CalendarWrapper;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -45,7 +47,9 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 
 /**
  * <p>
@@ -253,8 +257,174 @@ public class CloudService {
         }
     }
 
-    public void fetchCommands() {
-        // TODO: implement me
+    public void fetchCommands() throws CommunicationException, ControllerException {
+        boolean hasCommands;
+
+        do {
+            HttpClient client = getClient(endpoint, proxyHost, proxyPort);
+            HttpPut method = new HttpPut(endpoint + "/relay/" + serviceId + "/state");
+            long timestamp = System.currentTimeMillis();
+
+            method.addHeader("Content-Type", "application/json");
+            method.addHeader("x-imaginary-version", VERSION);
+            method.addHeader("x-imaginary-timestamp", String.valueOf(timestamp));
+            method.addHeader("x-imaginary-api-key", serviceId);
+
+            if( token == null ) {
+                authenticate();
+            }
+            String stringToSign = "GET:/command:" + serviceId + ":" + token + ":" + timestamp + ":" + VERSION;
+
+            try {
+                method.addHeader("x-imaginary-signature", sign(apiKeySecret.getBytes("utf-8"), stringToSign));
+            }
+            catch( Exception e ) {
+                throw new ControllerException(e);
+            }
+            HttpResponse response;
+            StatusLine status;
+
+            try {
+                response = client.execute(method);
+                status = response.getStatusLine();
+            }
+            catch( IOException e ) {
+                e.printStackTrace();
+                throw new CommunicationException(e);
+            }
+            if( status.getStatusCode() != HttpServletResponse.SC_OK ) {
+                parseError(response); // this will throw an exception
+            }
+            Header h = response.getFirstHeader("x-imaginary-has-commands");
+            String val = (h == null ? "false" : h.getValue());
+
+            hasCommands = (val != null && val.equalsIgnoreCase("true"));
+
+            HttpEntity entity = response.getEntity();
+
+            if( entity == null ) {
+                throw new CommunicationException(response.getStatusLine().getStatusCode(), "An error was returned without explanation");
+            }
+            String json;
+
+            try {
+                json = EntityUtils.toString(entity);
+            }
+            catch( IOException e ) {
+                throw new CommunicationException(e);
+            }
+            try {
+                HashMap<String,Map<String,List<JSONObject>>> commandGroups = new HashMap<String, Map<String, List<JSONObject>>>();
+                JSONArray list = new JSONArray(json);
+
+                for( int i=0; i<list.length(); i++ ) {
+                    JSONObject remoteCommand = list.getJSONObject(i);
+                    String groupId;
+
+                    if( remoteCommand.has("groupId") && !remoteCommand.isNull("groupId") ) {
+                        groupId = remoteCommand.getString("groupId");
+                    }
+                    else {
+                        continue;
+                    }
+                    long timeout = ((remoteCommand.has("timeout") && !remoteCommand.isNull("timeout")) ? remoteCommand.getLong("timeout") : (CalendarWrapper.MINUTE*5L));
+
+                    String commandString;
+
+                    if( remoteCommand.has("command") && !remoteCommand.isNull("command") ) {
+                        commandString = remoteCommand.getString("command");
+                    }
+                    else {
+                        continue;
+                    }
+                    JSONObject commandObject = new JSONObject(commandString);
+
+                    String command = commandObject.getString("command");
+                    JSONArray arguments = null;
+
+                    if( commandObject.has("arguments") && !commandObject.isNull("arguments") ) {
+                        arguments = commandObject.getJSONArray("arguments");
+                    }
+                    String commandId;
+
+                    if( remoteCommand.has("id") && !remoteCommand.isNull("id") ) {
+                        commandId = remoteCommand.getString("id");
+                    }
+                    else {
+                        continue;
+                    }
+
+                    if( remoteCommand.has("devices") && !remoteCommand.isNull("devices") ) {
+                        Map<String,TreeSet<String>> systemMapping = new HashMap<String, TreeSet<String>>();
+                        JSONArray arr = remoteCommand.getJSONArray("devices");
+
+                        for( int j=0; j<arr.length(); j++ ) {
+                            JSONObject d = arr.getJSONObject(j);
+                            String deviceId = d.getString("deviceId");
+                            String systemId = d.getString("systemId");
+                            TreeSet<String> deviceIds;
+
+                            if( systemMapping.containsKey(systemId) ) {
+                                deviceIds = systemMapping.get(systemId);
+                            }
+                            else {
+                                deviceIds = new TreeSet<String>();
+                                systemMapping.put(systemId, deviceIds);
+                            }
+                            deviceIds.add(deviceId);
+                        }
+                        Map<String, List<JSONObject>> groupMap;
+
+                        if( commandGroups.containsKey(groupId) ) {
+                            groupMap = commandGroups.get(groupId);
+                        }
+                        else {
+                            groupMap = new HashMap<String, List<JSONObject>>();
+                            commandGroups.put(groupId, groupMap);
+                        }
+                        for( String systemId : systemMapping.keySet() ) {
+                            List<JSONObject> cmds;
+
+                            if( groupMap.containsKey(systemId) ) {
+                                cmds = groupMap.get(systemId);
+                            }
+                            else {
+                                cmds = new ArrayList<JSONObject>();
+                                groupMap.put(systemId, cmds);
+                            }
+                            HashMap<String,Object> map = new HashMap<String, Object>();
+
+                            map.put("commandId", commandId);
+                            map.put("resourceIds", systemMapping.get(systemId));
+                            map.put("systemId", systemId);
+                            map.put("timeout", timeout);
+                            map.put("command", command);
+                            if( arguments != null ) {
+                                map.put("arguments", arguments);
+                            }
+                            else {
+                                map.put("arguments", new ArrayList<JSONObject>());
+                            }
+                            cmds.add(new JSONObject(map));
+                        }
+                    }
+                }
+                for( String groupId : commandGroups.keySet() ) {
+                    Map<String,List<JSONObject>> systemCommands = commandGroups.get(groupId);
+
+                    for( String systemId : systemCommands.keySet() ) {
+                        List<JSONObject> commands = systemCommands.get(systemId);
+
+                        if( commands != null && commands.size() > 0 ) {
+                            HomeController.getInstance().queueCommands(this, commands.toArray(new JSONObject[commands.size()]));
+                        }
+                    }
+                }
+            }
+            catch( JSONException e ) {
+                throw new CommunicationException(e);
+            }
+        } while( hasCommands );
     }
 
     public @Nonnull String getApiKeySecret() {

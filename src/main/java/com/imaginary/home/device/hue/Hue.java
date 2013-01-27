@@ -70,6 +70,8 @@ public class Hue implements HomeAutomationSystem, LightingService {
     private String     id;
     private String     ipAddress;
 
+    public Hue() { }
+
     public Hue(@Nonnull String ipAddress, @Nonnull String accessKey) {
         this(ipAddress, accessKey, new Properties());
     }
@@ -124,6 +126,12 @@ public class Hue implements HomeAutomationSystem, LightingService {
         accessKey = auth.getProperty("accessKey", "");
         ipAddress = auth.getProperty("ipAddress");
         customProperties = custom;
+        if( accessKey.equals("") ) {
+            this.endpoint = "http://" + ipAddress + "/api";
+        }
+        else {
+            this.endpoint = "http://" + ipAddress + "/api/" + accessKey + "/";
+        }
     }
 
     @Override

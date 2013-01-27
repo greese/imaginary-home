@@ -167,6 +167,10 @@
                             <name>accessKey</name>
                             <value>${accessKey}</value>
                         </property>
+                        <property>
+                            <name>ihaCfgRoot</name>
+                            <value>${ihaCfgRoot}</value>
+                        </property>
                     </systemProperties>
                 </configuration>
             </plugin>

@@ -18,6 +18,8 @@ package com.imaginary.home.cloud.api;
 
 import com.imaginary.home.cloud.Configuration;
 import com.imaginary.home.cloud.ControllerRelay;
+import com.imaginary.home.cloud.api.call.CommandCall;
+import com.imaginary.home.cloud.api.call.DeviceCall;
 import com.imaginary.home.cloud.api.call.LocationCall;
 import com.imaginary.home.cloud.api.call.RelayCall;
 import com.imaginary.home.cloud.user.ApiKey;
@@ -59,6 +61,8 @@ public class RestApi extends HttpServlet {
     static {
         apiCalls.put("location", new LocationCall());
         apiCalls.put("relay", new RelayCall());
+        apiCalls.put("command", new CommandCall());
+        apiCalls.put("device", new DeviceCall());
     }
 
     static public boolean supports(@Nonnull String requiredVersion, @Nonnull String clientVersion) {
@@ -83,10 +87,10 @@ public class RestApi extends HttpServlet {
         String version = (String)headers.get(VERSION);
 
         if( timestamp == null || apiKey == null || signature == null || version == null ) {
-            throw new RestException(HttpServletResponse.SC_BAD_REQUEST, "Incomplete authentication headers, requires: " + API_KEY + " - " + TIMESTAMP + " - " + SIGNATURE + " - " + VERSION);
+            throw new RestException(HttpServletResponse.SC_BAD_REQUEST, RestException.INCOMPLETE_HEADERS, "Incomplete authentication headers, requires: " + API_KEY + " - " + TIMESTAMP + " - " + SIGNATURE + " - " + VERSION);
         }
         if( signature.length() < 1 ) {
-            throw new RestException(HttpServletResponse.SC_FORBIDDEN, "No signature was provided for authentication");
+            throw new RestException(HttpServletResponse.SC_FORBIDDEN, RestException.NO_SIGNATURE, "No signature was provided for authentication");
         }
         try {
             ControllerRelay relay = ControllerRelay.getRelay(apiKey);
