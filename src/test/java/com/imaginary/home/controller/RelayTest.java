@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package com.imaginary.home.device.hue;
+package com.imaginary.home.controller;
 
 import com.imaginary.home.controller.CommunicationException;
 import com.imaginary.home.controller.ControllerException;
 import com.imaginary.home.controller.HomeController;
 import com.imaginary.home.controller.ManagedResource;
+import com.imaginary.home.device.hue.Hue;
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
 import org.junit.Before;

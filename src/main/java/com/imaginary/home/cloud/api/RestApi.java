@@ -408,7 +408,7 @@ public class RestApi extends HttpServlet {
 
                 String userId = authenticate("PUT", req, headers);
 
-                call.delete(requestId, userId, path, req, resp, headers, parameters);
+                call.put(requestId, userId, path, req, resp, headers, parameters);
             }
             else {
                 throw new RestException(HttpServletResponse.SC_NOT_FOUND, RestException.NO_SUCH_RESOURCE, "No " + path[0] + " resource exists in this API");
@@ -471,7 +471,7 @@ public class RestApi extends HttpServlet {
                 throw new RestException(e);
             }
             if( signature.equals(expected) ) {
-                String token = Configuration.generateToken(30, 45);
+                String token = Configuration.generateToken(40, 60);
 
                 relay.setToken(token);
                 return token;

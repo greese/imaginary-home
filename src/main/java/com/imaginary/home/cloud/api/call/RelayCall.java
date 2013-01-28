@@ -88,7 +88,7 @@ public class RelayCall extends APICall {
 
             json.put("apiKeyId", relay.getControllerRelayId());
             json.put("apiKeySecret", Configuration.decrypt(location.getLocationId(), relay.getApiKeySecret()));
-            resp.setStatus(HttpServletResponse.SC_OK);
+            resp.setStatus(HttpServletResponse.SC_CREATED);
             resp.getWriter().println((new JSONObject(json)).toString());
             resp.getWriter().flush();
         }
@@ -171,31 +171,35 @@ public class RelayCall extends APICall {
 
     private void update(ControllerRelay relay, JSONObject state, HttpServletResponse resp) throws RestException, IOException, JSONException {
         try {
-            if( state.has("devices") ) {
-                HashMap<String,Device> found = new HashMap<String, Device>();
-                JSONArray devices = state.getJSONArray("devices");
+            if( state.has("relay") ) {
+                JSONObject r = state.getJSONObject("relay");
 
-                for( int i=0; i<devices.length(); i++ ) {
-                    JSONObject device = devices.getJSONObject(i);
+                if( r.has("devices") ) {
+                    HashMap<String,Device> found = new HashMap<String, Device>();
+                    JSONArray devices = r.getJSONArray("devices");
 
-                    if( !device.has("id") || device.isNull("id") || !device.has("deviceType") || !device.isNull("deviceType") ) {
-                        continue;
-                    }
-                    String id = device.getString("id");
-                    String t = device.getString("deviceType");
-                    Device d = Device.getDevice(t, relay.getControllerRelayId() + ":" + id);
+                    for( int i=0; i<devices.length(); i++ ) {
+                        JSONObject device = devices.getJSONObject(i);
 
-                    if( d == null ) {
-                        d = Device.create(relay, t, device);
+                        if( !device.has("id") || device.isNull("id") || !device.has("deviceType") || !device.isNull("deviceType") ) {
+                            continue;
+                        }
+                        String id = device.getString("id");
+                        String t = device.getString("deviceType");
+                        Device d = Device.getDevice(t, relay.getControllerRelayId() + ":" + id);
+
+                        if( d == null ) {
+                            d = Device.create(relay, t, device);
+                        }
+                        else {
+                            d.update(device);
+                        }
+                        found.put(d.getDeviceId(), d);
                     }
-                    else {
-                        d.update(device);
-                    }
-                    found.put(d.getDeviceId(), d);
-                }
-                for( Device d : Device.findDevicesForRelay(relay) ) {
-                    if( !found.containsKey(d.getDeviceId()) ) {
-                        d.remove();
+                    for( Device d : Device.findDevicesForRelay(relay) ) {
+                        if( !found.containsKey(d.getDeviceId()) ) {
+                            d.remove();
+                        }
                     }
                 }
             }

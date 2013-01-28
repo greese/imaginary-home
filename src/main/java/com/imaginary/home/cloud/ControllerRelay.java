@@ -55,14 +55,14 @@ public class ControllerRelay implements CachedItem {
             id = UUID.randomUUID().toString();
         } while( getRelay(id) != null );
 
-        String key = Configuration.encrypt(location.getLocationId(), Configuration.generateToken(20, 20));
+        String key = Configuration.encrypt(location.getLocationId(), Configuration.generateToken(32, 32)).toUpperCase();
         HashMap<String,Object> state = new HashMap<String, Object>();
 
         state.put("apiKeySecret", key);
         state.put("controllerRelayId", id);
         state.put("locationId", location.getLocationId());
         state.put("name", name);
-        state.put("token", Configuration.encrypt(location.getLocationId(), Configuration.generateToken(20, 30)));
+        state.put("token", Configuration.encrypt(location.getLocationId(), Configuration.generateToken(40, 60)));
 
         Transaction xaction = Transaction.getInstance();
 

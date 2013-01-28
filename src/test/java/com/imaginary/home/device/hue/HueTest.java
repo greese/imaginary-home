@@ -45,6 +45,7 @@ public class HueTest {
         return new Hue(System.getProperty("ip"), System.getProperty("accessKey"));
     }
 
+    /*
     @Before
     public void setUp() throws CommunicationException {
         bulbList = getHue().listLights();
@@ -308,4 +309,5 @@ public class HueTest {
             catch( InterruptedException e ) { }
         }
     }
+    */
 }

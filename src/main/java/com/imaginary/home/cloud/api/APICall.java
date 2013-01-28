@@ -33,22 +33,22 @@ import java.util.Map;
  */
 public class APICall {
     public void delete(@Nonnull String requestId, @Nullable String userId, @Nonnull String[] path, @Nonnull HttpServletRequest req, @Nonnull HttpServletResponse resp, @Nonnull Map<String,Object> headers, @Nonnull Map<String,Object> parameters) throws RestException, IOException {
-
+        throw new RestException(HttpServletResponse.SC_METHOD_NOT_ALLOWED, RestException.INVALID_OPERATION, "DELETE is not allowed");
     }
 
     public void get(@Nonnull String requestId, @Nullable String userId, @Nonnull String[] path, @Nonnull HttpServletRequest req, @Nonnull HttpServletResponse resp, @Nonnull Map<String,Object> headers, @Nonnull Map<String,Object> parameters) throws RestException, IOException {
-
+        throw new RestException(HttpServletResponse.SC_METHOD_NOT_ALLOWED, RestException.INVALID_OPERATION, "GEt is not allowed");
     }
 
     public void head(@Nonnull String requestId, @Nullable String userId, @Nonnull String[] path, @Nonnull HttpServletRequest req, @Nonnull HttpServletResponse resp, @Nonnull Map<String,Object> headers, @Nonnull Map<String,Object> parameters) throws RestException, IOException {
-
+        throw new RestException(HttpServletResponse.SC_METHOD_NOT_ALLOWED, RestException.INVALID_OPERATION, "HEAD is not allowed");
     }
 
     public void post(@Nonnull String requestId, @Nullable String userId, @Nonnull String[] path, @Nonnull HttpServletRequest req, @Nonnull HttpServletResponse resp, @Nonnull Map<String,Object> headers, @Nonnull Map<String,Object> parameters) throws RestException, IOException {
-
+        throw new RestException(HttpServletResponse.SC_METHOD_NOT_ALLOWED, RestException.INVALID_OPERATION, "POST is not allowed");
     }
 
     public void put(@Nonnull String requestId, @Nullable String userId, @Nonnull String[] path, @Nonnull HttpServletRequest req, @Nonnull HttpServletResponse resp, @Nonnull Map<String,Object> headers, @Nonnull Map<String,Object> parameters) throws RestException, IOException {
-
+        throw new RestException(HttpServletResponse.SC_METHOD_NOT_ALLOWED, RestException.INVALID_OPERATION, "PUT is not allowed");
     }
 }

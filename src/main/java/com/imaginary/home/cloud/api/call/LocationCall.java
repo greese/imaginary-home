@@ -201,7 +201,7 @@ public class LocationCall extends APICall {
                 String pairingCode = location.readyForPairing();
 
                 json.put("pairingCode", pairingCode);
-                resp.setStatus(HttpServletResponse.SC_CREATED);
+                resp.setStatus(HttpServletResponse.SC_OK);
                 resp.getWriter().println((new JSONObject(json)).toString());
                 resp.getWriter().flush();
             }
@@ -252,7 +252,7 @@ public class LocationCall extends APICall {
 
         json.put("name", location.getName());
         json.put("description", location.getDescription());
-        json.put("timeZone", location.getTimeZone());
+        json.put("timeZone", location.getTimeZone().getID());
         json.put("locationId", location.getLocationId());
         return json;
     }
