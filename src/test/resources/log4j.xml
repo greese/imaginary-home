@@ -73,6 +73,11 @@
         <appender-ref ref="ASYNCUNIT" />
     </category>
 
+    <category name="com.imaginary.home.cloud.test">
+        <priority value="DEBUG" />
+        <appender-ref ref="ASYNCUNIT" />
+    </category>
+
     <category name="imaginary.hue.std">
         <priority value="TRACE" />
         <appender-ref ref="ASYNCIMG" />

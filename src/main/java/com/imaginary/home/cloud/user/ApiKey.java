@@ -41,12 +41,12 @@ public class ApiKey implements CachedItem {
         String keyId;
 
         do {
-            keyId = Configuration.generateToken(10, 10);
+            keyId = Configuration.generateToken(20, 20).toUpperCase();
         } while( getApiKey(keyId) != null );
         HashMap<String,Object> state = new HashMap<String, Object>();
 
         state.put("apiKeyId", keyId);
-        state.put("apiKeySecret", Configuration.encrypt(forUser.getUserId(), Configuration.generateToken(20, 20)));
+        state.put("apiKeySecret", Configuration.encrypt(forUser.getUserId(), Configuration.generateToken(32, 32).toUpperCase()));
         state.put("userId", forUser.getUserId());
         state.put("application", application);
 

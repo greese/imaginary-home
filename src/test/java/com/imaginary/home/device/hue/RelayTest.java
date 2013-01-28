@@ -85,24 +85,6 @@ public class RelayTest {
         }
     }
 
-    @Test
-    public void stateToJSON() throws CommunicationException, ControllerException {
-        ArrayList<Map<String,Object>> devices = new ArrayList<Map<String, Object>>();
-        HashMap<String,Object> state = new HashMap<String,Object>();
-
-        state.put("action", "update");
-        for( ManagedResource resource : HomeController.getInstance().listResources() ) {
-            HashMap<String,Object> json = new HashMap<String, Object>();
-
-            resource.toMap(json);
-            devices.add(json);
-        }
-        state.put("devices", devices);
-        JSONObject json = new JSONObject(state);
-
-        out("JSON:\n" + json.toString());
-    }
-
     private void out(String msg) {
         if( logger.isDebugEnabled() ) {
             logger.debug("> " + msg);

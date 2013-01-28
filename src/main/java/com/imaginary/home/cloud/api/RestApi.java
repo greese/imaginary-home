@@ -65,6 +65,7 @@ public class RestApi extends HttpServlet {
         apiCalls.put("device", new DeviceCall());
     }
 
+    @SuppressWarnings("UnusedDeclaration") // this is going to be unused until a new API version comes out
     static public boolean supports(@Nonnull String requiredVersion, @Nonnull String clientVersion) {
         if( clientVersion.equals(requiredVersion) ) {
             return true;
@@ -486,7 +487,7 @@ public class RestApi extends HttpServlet {
         if( values == null || !values.hasMoreElements() ) {
             return null;
         }
-        if( key.equalsIgnoreCase(API_KEY) || key.equals(SIGNATURE) ) {
+        if( key.equalsIgnoreCase(API_KEY) || key.equals(SIGNATURE) || key.equals(VERSION) ) {
             return values.nextElement();
         }
         if( key.equalsIgnoreCase(TIMESTAMP) ) {

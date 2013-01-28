@@ -28,6 +28,7 @@ import org.dasein.util.CachedItem;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -124,10 +125,11 @@ public class ControllerRelay implements CachedItem {
     }
 
     public void modify(@Nonnull String name) throws PersistenceException {
-        HashMap<String,Object> state = new HashMap<String, Object>();
         Memento<ControllerRelay> memento = new Memento<ControllerRelay>(this);
+        Map<String,Object> state = new HashMap<String, Object>();
 
         memento.save(state);
+        state = memento.getState();
         token = Configuration.encrypt(locationId, token);
         state.put("name", name);
         Transaction xaction = Transaction.getInstance();
@@ -143,10 +145,11 @@ public class ControllerRelay implements CachedItem {
     }
 
     public void setToken(@Nonnull String token) throws PersistenceException {
-        HashMap<String,Object> state = new HashMap<String, Object>();
         Memento<ControllerRelay> memento = new Memento<ControllerRelay>(this);
+        Map<String,Object> state = new HashMap<String, Object>();
 
         memento.save(state);
+        state = memento.getState();
         token = Configuration.encrypt(locationId, token);
         state.put("token", token);
         Transaction xaction = Transaction.getInstance();

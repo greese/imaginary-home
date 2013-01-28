@@ -34,6 +34,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.TreeSet;
 import java.util.UUID;
 
@@ -153,10 +154,11 @@ public class User implements CachedItem {
         ids.add(location.getLocationId());
         String[] locationIds = ids.toArray(new String[ids.size()]);
 
-        HashMap<String,Object> state = new HashMap<String, Object>();
+        Map<String,Object> state = new HashMap<String, Object>();
         Memento<User> memento = new Memento<User>(this);
 
         memento.save(state);
+        state = memento.getState();
         state.put("locationIds", locationIds);
         Transaction xaction = Transaction.getInstance();
 
@@ -195,10 +197,11 @@ public class User implements CachedItem {
         }
         String[] locationIds = ids.toArray(new String[ids.size()]);
 
-        HashMap<String,Object> state = new HashMap<String, Object>();
+        Map<String,Object> state = new HashMap<String, Object>();
         Memento<User> memento = new Memento<User>(this);
 
         memento.save(state);
+        state = memento.getState();
         state.put("locationIds", locationIds);
         Transaction xaction = Transaction.getInstance();
 

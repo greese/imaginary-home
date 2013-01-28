@@ -31,6 +31,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
 
@@ -135,10 +136,11 @@ public class Location implements CachedItem {
     }
 
     public void modify(@Nonnull String name, @Nonnull String description, @Nonnull TimeZone tz) throws PersistenceException {
-        HashMap<String,Object> state = new HashMap<String, Object>();
         Memento<Location> memento = new Memento<Location>(this);
+        Map<String,Object> state = new HashMap<String, Object>();
 
         memento.save(state);
+        state = memento.getState();
         state.put("name", name);
         state.put("description", description);
         state.put("timeZone", tz);
@@ -165,11 +167,11 @@ public class Location implements CachedItem {
             return null;
         }
         ControllerRelay relay = ControllerRelay.create(this, relayName);
-        HashMap<String,Object> state = new HashMap<String, Object>();
         Memento<Location> memento = new Memento<Location>(this);
+        Map<String,Object> state = new HashMap<String, Object>();
 
         memento.save(state);
-
+        state = memento.getState();
         state.put("pairingCode", null);
         state.put("pairingExpiration", 0);
 
@@ -196,11 +198,12 @@ public class Location implements CachedItem {
             pairingCode = Configuration.generateToken(10, 20);
         } while( findForPairing(pairingCode) != null );
 
-        HashMap<String,Object> state = new HashMap<String, Object>();
         Memento<Location> memento = new Memento<Location>(this);
+        Map<String,Object> state = new HashMap<String, Object>();
         long timeout = System.currentTimeMillis() + (CalendarWrapper.MINUTE*5);
 
         memento.save(state);
+        state = memento.getState();
         state.put("pairingCode", pairingCode);
         state.put("pairingExpiration", timeout);
         Transaction xaction = Transaction.getInstance();
@@ -218,10 +221,11 @@ public class Location implements CachedItem {
     }
 
     public void setDescription(String description) throws PersistenceException {
-        HashMap<String,Object> state = new HashMap<String, Object>();
         Memento<Location> memento = new Memento<Location>(this);
+        Map<String,Object> state = new HashMap<String, Object>();
 
         memento.save(state);
+        state = memento.getState();
         state.put("description", description);
         Transaction xaction = Transaction.getInstance();
 
@@ -236,10 +240,11 @@ public class Location implements CachedItem {
     }
 
     public void setName(String name) throws PersistenceException {
-        HashMap<String,Object> state = new HashMap<String, Object>();
         Memento<Location> memento = new Memento<Location>(this);
+        Map<String,Object> state = new HashMap<String, Object>();
 
         memento.save(state);
+        state = memento.getState();
         state.put("name", name);
         Transaction xaction = Transaction.getInstance();
 
@@ -254,10 +259,11 @@ public class Location implements CachedItem {
     }
 
     public void setTimeZone(TimeZone tz) throws PersistenceException {
-        HashMap<String,Object> state = new HashMap<String, Object>();
         Memento<Location> memento = new Memento<Location>(this);
+        Map<String,Object> state = new HashMap<String, Object>();
 
         memento.save(state);
+        state = memento.getState();
         state.put("timeZone", tz);
         Transaction xaction = Transaction.getInstance();
 
