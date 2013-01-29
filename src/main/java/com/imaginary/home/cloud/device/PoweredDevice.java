@@ -23,6 +23,8 @@ import org.dasein.persist.PersistenceException;
 import org.dasein.persist.PersistentCache;
 import org.dasein.persist.SearchTerm;
 import org.dasein.persist.Transaction;
+import org.dasein.persist.annotations.Index;
+import org.dasein.persist.annotations.IndexType;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -30,6 +32,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -77,6 +80,12 @@ public class PoweredDevice extends Device {
 
     static public @Nullable PoweredDevice getPoweredDevice(@Nonnull String deviceId) throws PersistenceException {
         return getCache().get(deviceId);
+    }
+
+    static public @Nullable PoweredDevice getPoweredDevice(@Nonnull ControllerRelay relay, @Nonnull String systemId, @Nonnull String vendorDeviceId) throws PersistenceException {
+        Iterator<PoweredDevice> it = getCache().find(new SearchTerm("systemId", systemId), new SearchTerm("vendorDeviceId", vendorDeviceId), new SearchTerm("relayId", relay.getControllerRelayId())).iterator();
+
+        return (it.hasNext() ? it.next() : null);
     }
 
     static public void mapPoweredDevice(@Nonnull ControllerRelay relay, @Nonnull JSONObject json, @Nonnull Map<String,Object> state) throws JSONException {

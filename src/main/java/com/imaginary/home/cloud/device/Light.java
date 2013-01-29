@@ -24,6 +24,8 @@ import org.dasein.persist.PersistenceException;
 import org.dasein.persist.PersistentCache;
 import org.dasein.persist.SearchTerm;
 import org.dasein.persist.Transaction;
+import org.dasein.persist.annotations.Index;
+import org.dasein.persist.annotations.IndexType;
 import org.dasein.util.uom.time.TimePeriod;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -93,6 +95,15 @@ public class Light extends PoweredDevice {
         return null;
     }
 
+    static public @Nullable Light getLight(@Nonnull ControllerRelay relay, @Nonnull String systemId, @Nonnull String vendorDeviceId) throws PersistenceException {
+        for( Light light : findLightsForRelay(relay) ) {
+            if( light.getHomeAutomationSystemId().equals(systemId) && light.getVendorDeviceId().equals(vendorDeviceId) ) {
+                return light;
+            }
+        }
+        return null;
+    }
+
     static void mapLight(@Nonnull ControllerRelay relay, @Nonnull JSONObject json, @Nonnull Map<String,Object> state) throws JSONException {
         mapPoweredDevice(relay, json, state);
         state.put("deviceType", "light");
@@ -118,7 +129,8 @@ public class Light extends PoweredDevice {
                 }
             }
             if( colorMode != null || components != null ) {
-                state.put("color", new Color(colorMode, components));
+                state.put("colorMode", colorMode);
+                state.put("colorValues", components);
             }
         }
         if( json.has("brightness") && !json.isNull("brightness") ) {
@@ -147,9 +159,10 @@ public class Light extends PoweredDevice {
     }
 
     private float       brightness;
-    private Color       color;
+    private ColorMode   colorMode;
     private boolean     colorChangeSupported;
     private ColorMode[] colorModesSupported;
+    private float[]     colorValues;
     private boolean     dimmable;
 
     public Light() { }
@@ -179,7 +192,7 @@ public class Light extends PoweredDevice {
     }
 
     public @Nonnull Color getColor() {
-        return color;
+        return new Color(colorMode, colorValues);
     }
 
     public @Nonnull ColorMode[] getColorModesSupported() {
@@ -222,7 +235,7 @@ public class Light extends PoweredDevice {
             state.remove("deviceId");
             memento.save(state);
             state = memento.getState();
-
+            System.out.println("State=" + state);
             Transaction xaction = Transaction.getInstance();
 
             try {

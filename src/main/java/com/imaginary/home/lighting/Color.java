@@ -15,6 +15,9 @@
  */
 package com.imaginary.home.lighting;
 
+import org.dasein.persist.annotations.AutoJSON;
+import org.json.JSONObject;
+
 import javax.annotation.Nonnull;
 import java.awt.color.ColorSpace;
 import java.util.Arrays;

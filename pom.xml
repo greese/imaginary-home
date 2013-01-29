@@ -44,7 +44,7 @@
         <dependency>
             <groupId>org.dasein</groupId>
             <artifactId>dasein-persist</artifactId>
-            <version>2012.08.6</version>
+            <version>2012.08.9</version>
             <scope>compile</scope>
             <optional>false</optional>
         </dependency>

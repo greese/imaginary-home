@@ -17,6 +17,7 @@
 package com.imaginary.home.cloud;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.log4j.Logger;
 import org.dasein.persist.PersistenceException;
 import org.dasein.persist.PersistentCache;
 import org.dasein.persist.Transaction;
@@ -38,11 +39,14 @@ import java.util.Random;
  * @author George Reese
  */
 public class Configuration implements CachedItem {
+    static private final Logger logger = Logger.getLogger(Configuration.class);
+
     static private PersistentCache<Configuration> cache;
 
     static public @Nonnull String decrypt(@Nonnull String keySalt, @Nonnull String value) {
         try {
-            SecretKeySpec spec = new SecretKeySpec(getConfiguration().getCustomSalt(keySalt), "AES");
+            byte[] salt = getConfiguration().getCustomSalt(keySalt);
+            SecretKeySpec spec = new SecretKeySpec(salt, "AES");
             Cipher cipher = Cipher.getInstance("AES");
 
             cipher.init(Cipher.DECRYPT_MODE, spec);
@@ -53,6 +57,7 @@ public class Configuration implements CachedItem {
             return new String(decrypted, "utf-8");
         }
         catch( Exception e ) {
+            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }

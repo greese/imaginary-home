@@ -16,13 +16,21 @@
 
 package com.imaginary.home.cloud.api.call;
 
+import com.imaginary.home.cloud.ControllerRelay;
+import com.imaginary.home.cloud.Location;
 import com.imaginary.home.cloud.PendingCommand;
 import com.imaginary.home.cloud.api.APICall;
+import com.imaginary.home.cloud.api.RestApi;
 import com.imaginary.home.cloud.api.RestException;
 import com.imaginary.home.cloud.device.Device;
+import com.imaginary.home.cloud.device.Light;
+import com.imaginary.home.cloud.device.PoweredDevice;
+import com.imaginary.home.cloud.user.User;
+import com.imaginary.home.lighting.Color;
 import org.dasein.persist.PersistenceException;
 import org.dasein.util.uom.time.Minute;
 import org.dasein.util.uom.time.TimePeriod;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -33,6 +41,9 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -43,6 +54,108 @@ import java.util.Map;
  * @author George Reese
  */
 public class DeviceCall extends APICall {
+
+    @Override
+    public void get(@Nonnull String requestId, @Nullable String userId, @Nonnull String[] path, @Nonnull HttpServletRequest req, @Nonnull HttpServletResponse resp, @Nonnull Map<String,Object> headers, @Nonnull Map<String,Object> parameters) throws RestException, IOException {
+        try {
+            String deviceId = (path.length > 1 ? path[1] : null);
+
+            if( deviceId != null ) {
+                Device device = Device.getDevice(deviceId);
+
+                if( device == null ) {
+                    throw new RestException(HttpServletResponse.SC_NOT_FOUND, RestException.NO_SUCH_OBJECT, "The device " + deviceId + " does not exist.");
+                }
+                resp.setStatus(HttpServletResponse.SC_OK);
+                resp.getWriter().println((new JSONObject(toJSON(device))).toString());
+                resp.getWriter().flush();
+            }
+            else {
+                String locationId = req.getParameter("locationId");
+                String deviceType = req.getParameter("deviceType");
+                String tmp = req.getParameter("includeChildren");
+                boolean includeChildren = (tmp != null && tmp.equalsIgnoreCase("true"));
+                User user = (userId != null ? User.getUserByUserId(userId) : null);
+                ControllerRelay relay = (user == null ? ControllerRelay.getRelay((String)headers.get(RestApi.API_KEY)) : null);
+                Location location = (locationId == null ? null : Location.getLocation(locationId));
+
+                if( locationId != null && location == null ) {
+                    throw new RestException(HttpServletResponse.SC_FORBIDDEN, RestException.INVALID_ACTION, "You do not have access to those resources");
+                }
+                if( user == null && relay == null ) {
+                    throw new RestException(HttpServletResponse.SC_FORBIDDEN, RestException.INVALID_ACTION, "Cannot request devices without a proper authentication context");
+                }
+                if( relay != null && location != null ) {
+                    if( !relay.getLocationId().equals(location.getLocationId()) ) {
+                        throw new RestException(HttpServletResponse.SC_FORBIDDEN, RestException.INVALID_ACTION, "You do not have access to those resources");
+                    }
+                }
+                Collection<ControllerRelay> relays;
+
+                if( relay != null ) {
+                    relays = Collections.singletonList(relay);
+                }
+                else {
+                    if( location != null ) {
+                        boolean allowed = location.getOwnerId().equals(user.getUserId());
+
+                        if( !allowed ) {
+                            for( String id : user.getLocationIds() ) {
+                                if( id.equals(location.getLocationId()) ) {
+                                    allowed = true;
+                                    break;
+                                }
+                            }
+                            if( !allowed ) {
+                                throw new RestException(HttpServletResponse.SC_FORBIDDEN, RestException.INVALID_ACTION, "You do not have access to those resources");
+                            }
+                        }
+                        relays = ControllerRelay.findRelaysInLocation(location);
+                    }
+                    else {
+                        relays = new ArrayList<ControllerRelay>();
+                        for( Location l : user.getLocations() ) {
+                            relays.addAll(ControllerRelay.findRelaysInLocation(l));
+                        }
+                    }
+
+                }
+                ArrayList<Device> devices = new ArrayList<Device>();
+
+                for( ControllerRelay r : relays ) {
+                    if( deviceType == null ) {
+                        devices.addAll(Device.findDevicesForRelay(r));
+                    }
+                    else if( deviceType.equals("powered") ) {
+                        if( includeChildren ) {
+                            PoweredDevice.findPoweredDevicesForRelayWithChildren(r, devices);
+                        }
+                        else {
+                            devices.addAll(PoweredDevice.findPoweredDevicesForRelay(r));
+                        }
+                    }
+                    else if( deviceType.equals("light") ) {
+                        devices.addAll(Light.findPoweredDevicesForRelay(r));
+                    }
+                    else {
+                        throw new RestException(HttpServletResponse.SC_BAD_REQUEST, RestException.INVALID_DEVICE_TYPE, "Invalid device type: " + deviceType);
+                    }
+                }
+                ArrayList<Map<String,Object>> list = new ArrayList<Map<String, Object>>();
+
+                for( Device d : devices ) {
+                    list.add(toJSON(d));
+                }
+                resp.setStatus(HttpServletResponse.SC_OK);
+                resp.getWriter().println((new JSONArray(list)).toString());
+                resp.getWriter().flush();
+            }
+        }
+        catch( PersistenceException e ) {
+            throw new RestException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, RestException.INTERNAL_ERROR, e.getMessage());
+        }
+    }
+
     @Override
     public void put(@Nonnull String requestId, @Nullable String userId, @Nonnull String[] path, @Nonnull HttpServletRequest req, @Nonnull HttpServletResponse resp, @Nonnull Map<String,Object> headers, @Nonnull Map<String,Object> parameters) throws RestException, IOException {
         try {
@@ -136,5 +249,40 @@ public class DeviceCall extends APICall {
         catch( PersistenceException e ) {
             throw new RestException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, RestException.INTERNAL_ERROR, e.getMessage());
         }
+    }
+
+    private @Nonnull Map<String,Object> toJSON(@Nonnull Device device) {
+        HashMap<String,Object> map = new HashMap<String, Object>();
+
+        map.put("deviceId", device.getDeviceId());
+        map.put("systemId", device.getHomeAutomationSystemId());
+        map.put("vendorDeviceId", device.getVendorDeviceId());
+        map.put("name", device.getName());
+        map.put("description", device.getDescription());
+        map.put("deviceType", device.getDeviceType());
+        map.put("relayId", device.getRelayId());
+        if( device.getModel() != null ) {
+            map.put("model", device.getModel());
+        }
+        if( device.getFixtureId() != null ) {
+            map.put("fixtureId", device.getFixtureId());
+        }
+        if( device instanceof PoweredDevice ) {
+            PoweredDevice pd = (PoweredDevice)device;
+
+            map.put("on", pd.isOn());
+        }
+        if( device instanceof Light ) {
+            Light l = (Light)device;
+            Color c = l.getColor();
+
+            map.put("colorModes", c.getColorMode());
+            map.put("colorValues", c.getComponents());
+            map.put("brightness", l.getBrightness());
+            map.put("supportedColorModes", l.getColorModesSupported());
+            map.put("supportsColorChange", l.isColorChangeSupported());
+            map.put("dimmable", l.isDimmable());
+        }
+        return map;
     }
 }

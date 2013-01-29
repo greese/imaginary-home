@@ -56,6 +56,16 @@ public abstract class Device implements CachedItem {
         return devices;
     }
 
+    static public @Nullable Device getDevice(@Nonnull String deviceType, @Nonnull ControllerRelay forRelay, @Nonnull String systemId, @Nonnull String vendorDeviceId) throws PersistenceException {
+        if( deviceType.equals("powered") ) {
+            return PoweredDevice.getPoweredDevice(forRelay, systemId, vendorDeviceId);
+        }
+        else if( deviceType.equals("light") ) {
+            return Light.getLight(forRelay, systemId, vendorDeviceId);
+        }
+        return null;
+    }
+
     static public @Nullable Device getDevice(@Nonnull String deviceId) throws PersistenceException {
         Device d = Light.getLight(deviceId);
 
@@ -65,18 +75,9 @@ public abstract class Device implements CachedItem {
         return d;
     }
 
-    static public @Nullable Device getDevice(@Nonnull String deviceType, @Nonnull String deviceId) throws PersistenceException {
-        if( deviceType.equals("powered") ) {
-            return PoweredDevice.getPoweredDevice(deviceId);
-        }
-        else if( deviceType.equals("light") ) {
-            return Light.getLight(deviceId);
-        }
-        return null;
-    }
-
     static void mapDevice(@Nonnull ControllerRelay relay, @Nonnull JSONObject json, @Nonnull Map<String,Object> state) throws JSONException {
         state.put("relayId", relay.getControllerRelayId());
+        state.put("deviceId", UUID.randomUUID().toString());
         if( json.has("name") && !json.isNull("name") ) {
             state.put("name", json.getString("name"));
         }
@@ -88,7 +89,6 @@ public abstract class Device implements CachedItem {
         }
         if( json.has("id") && !json.isNull("id") ) {
             state.put("vendorDeviceId", json.getString("id"));
-            state.put("deviceId", UUID.randomUUID().toString());
         }
         if( json.has("systemId") && !json.isNull("systemId") ) {
             state.put("homeAutomationSystemId", json.getString("systemId"));
@@ -163,4 +163,9 @@ public abstract class Device implements CachedItem {
     public abstract void remove() throws PersistenceException;
 
     public abstract void update(@Nonnull JSONObject json) throws PersistenceException;
+
+    @Override
+    public @Nonnull String toString() {
+        return (name + " [" + deviceType + "#" + deviceId + "] [" + homeAutomationSystemId + "#" + vendorDeviceId + "]");
+    }
 }

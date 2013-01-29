@@ -20,12 +20,14 @@ import com.imaginary.home.controller.CloudService;
 import com.imaginary.home.controller.CommunicationException;
 import com.imaginary.home.controller.HomeController;
 import com.imaginary.home.device.hue.Hue;
+import com.imaginary.home.lighting.ColorMode;
 import junit.framework.Assert;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpVersion;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.StringEntity;
@@ -36,6 +38,7 @@ import org.apache.http.params.HttpProtocolParams;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Rule;
@@ -49,6 +52,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -135,6 +139,9 @@ public class CloudTest {
         }
         if( name.getMethodName().equals("pushState") && token == null ) {
             setupToken();
+        }
+        if( name.getMethodName().equals("listDevices") ) {
+            setupDevices();
         }
     }
 
@@ -357,6 +364,63 @@ public class CloudTest {
         }
         else {
             Assert.fail("Failed to generate token (" + status.getStatusCode() + ": " + EntityUtils.toString(response.getEntity()));
+        }
+    }
+
+    private void setupDevices() throws Exception {
+        if( token == null ) {
+            setupToken();
+        }
+        HashMap<String,Object> action = new HashMap<String, Object>();
+
+        action.put("action", "update");
+
+        HashMap<String,Object> relay = new HashMap<String, Object>();
+
+        ArrayList<Map<String,Object>> devices = new ArrayList<Map<String, Object>>();
+
+        {
+            HashMap<String,Object> device = new HashMap<String, Object>();
+
+            device.put("systemId", "2");
+            device.put("id", "999");
+            device.put("model", "XYZ900");
+            device.put("on", false);
+            device.put("deviceType", "powered");
+            device.put("name", "Manipulation Test");
+            device.put("description", "A test thing that turns off and on and will be manipulated by tests");
+            devices.add(device);
+        }
+        relay.put("devices", devices);
+        action.put("relay", relay);
+
+        HttpClient client = getClient();
+
+        HttpPut method = new HttpPut(cloudAPI + "/relay/" + relayKeyId);
+        long timestamp = System.currentTimeMillis();
+
+        method.addHeader("Content-Type", "application/json");
+        method.addHeader("x-imaginary-version", VERSION);
+        method.addHeader("x-imaginary-timestamp", String.valueOf(timestamp));
+        method.addHeader("x-imaginary-api-key", relayKeyId);
+        method.addHeader("x-imaginary-signature", CloudService.sign(relayKeySecret.getBytes("utf-8"), "put:/relay/" + relayKeyId + ":" + relayKeyId + ":" + token + ":" + timestamp + ":" + VERSION));
+
+        //noinspection deprecation
+        method.setEntity(new StringEntity((new JSONObject(action)).toString(), "application/json", "UTF-8"));
+
+        HttpResponse response;
+        StatusLine status;
+
+        try {
+            response = client.execute(method);
+            status = response.getStatusLine();
+        }
+        catch( IOException e ) {
+            e.printStackTrace();
+            throw new CommunicationException(e);
+        }
+        if( status.getStatusCode() != HttpServletResponse.SC_NO_CONTENT ) {
+            Assert.fail("Failed to update state for relay  (" + status.getStatusCode() + ": " + EntityUtils.toString(response.getEntity()));
         }
     }
 
@@ -645,7 +709,41 @@ public class CloudTest {
 
         HashMap<String,Object> relay = new HashMap<String, Object>();
 
-        relay.put("devices", new ArrayList<Map<String,Object>>());
+        ArrayList<Map<String,Object>> devices = new ArrayList<Map<String, Object>>();
+
+        {
+            HashMap<String,Object> device = new HashMap<String, Object>();
+
+            device.put("systemId", "1");
+            device.put("id", "1");
+            device.put("model", "A1234");
+            device.put("on", true);
+            device.put("deviceType", "light");
+            device.put("name", "Test Light Bulb");
+            device.put("description", "A test light bulb for integration tests");
+            device.put("supportsColorChanges", true);
+            device.put("supportsBrightnessChanges", true);
+            device.put("colorModes", new ColorMode[] { ColorMode.RGB });
+
+            HashMap<String,Object> color = new HashMap<String, Object>();
+
+            color.put("colorMode", ColorMode.RGB.name());
+            color.put("components", new float[] { 100f, 0f, 0f });
+            device.put("color", color);
+            devices.add(device);
+
+            device = new HashMap<String, Object>();
+            device.put("systemId", "2");
+            device.put("id", "1");
+            device.put("model", "XYZ999");
+            device.put("on", false);
+            device.put("deviceType", "powered");
+            device.put("name", "Test Thing");
+            device.put("description", "A test thing that turns off and on");
+            devices.add(device);
+
+        }
+        relay.put("devices", devices);
         action.put("relay", relay);
 
         HttpClient client = getClient();
@@ -689,9 +787,57 @@ public class CloudTest {
         }
     }
 
+    @Test
+    public void listDevices() throws Exception {
+        HttpClient client = getClient();
+
+        HttpGet method = new HttpGet(cloudAPI + "/device?locationId=" + URLEncoder.encode(locationId, "utf-8"));
+
+        long timestamp = System.currentTimeMillis();
+
+        method.addHeader("Content-Type", "application/json");
+        method.addHeader("x-imaginary-version", VERSION);
+        method.addHeader("x-imaginary-timestamp", String.valueOf(timestamp));
+        method.addHeader("x-imaginary-api-key", apiKeyId);
+        method.addHeader("x-imaginary-signature", CloudService.sign(apiKeySecret.getBytes("utf-8"), "get:/device:" + apiKeyId + ":" + timestamp + ":" + VERSION));
+
+        HttpResponse response;
+        StatusLine status;
+
+        try {
+            response = client.execute(method);
+            status = response.getStatusLine();
+        }
+        catch( IOException e ) {
+            e.printStackTrace();
+            throw new CommunicationException(e);
+        }
+        if( status.getStatusCode() == HttpServletResponse.SC_OK ) {
+            String json = EntityUtils.toString(response.getEntity());
+            JSONArray list = new JSONArray(json);
+            String match = null;
+
+            for( int i=0; i<list.length(); i++ ) {
+                JSONObject device = list.getJSONObject(i);
+
+                out("device -> " + device.toString());
+                if( device.has("systemId") && device.getString("systemId").equals("2") ) {
+                    if( device.has("vendorDeviceId") && device.getString("vendorDeviceId").equals("999") ) {
+                        match = device.getString("deviceId");
+                    }
+                }
+            }
+            out("MATCH: " + match);
+            Assert.assertNotNull("Unable to find the test device among the returned devices", match);
+        }
+        else {
+            Assert.fail("Failed to load devices (" + status.getStatusCode() + ": " + EntityUtils.toString(response.getEntity()));
+        }
+    }
+
     private void out(String msg) {
         if( logger.isDebugEnabled() ) {
-            logger.debug("> " + msg);
+            logger.debug(name.getMethodName() + "> " + msg);
         }
     }
 }

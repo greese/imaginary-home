@@ -30,6 +30,7 @@ import org.dasein.util.CachedItem;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -124,6 +125,13 @@ public class User implements CachedItem {
 
     public @Nonnull String getLastName() {
         return lastName;
+    }
+
+    public @Nonnull String[] getLocationIds() {
+        if( locationIds == null || locationIds.length < 1 ) {
+            return new String[0];
+        }
+        return Arrays.copyOf(locationIds, locationIds.length);
     }
 
     public @Nonnull Collection<Location> getLocations() throws PersistenceException {

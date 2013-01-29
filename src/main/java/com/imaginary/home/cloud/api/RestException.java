@@ -31,6 +31,7 @@ public class RestException extends Exception {
     static public final String INCOMPLETE_HEADERS   = "IncompleteHeaders";
     static public final String INTERNAL_ERROR       = "InternalError";
     static public final String INVALID_ACTION       = "InvalidAction";
+    static public final String INVALID_DEVICE_TYPE  = "InvalidDeviceType";
     static public final String INVALID_JSON         = "InvalidJSON";
     static public final String INVALID_KEY          = "InvalidKey";
     static public final String INVALID_OPERATION    = "InvalidOperation";

@@ -521,26 +521,31 @@ public class HueBulb implements Light {
                 map.put("model", state.getString("modelid"));
             }
             if( state.has("colormode") ) {
-                String mode = state.getString("colormode");
+                HashMap<String,Object> color = new HashMap<String, Object>();
 
+                String mode = state.getString("colormode");
 
                 if( mode.equalsIgnoreCase("xy") ) {
                     JSONArray arr = state.getJSONArray("xy");
 
-                    map.put("color", new Color(ColorMode.CIEXYZ, (float)arr.getDouble(0), (float)arr.getDouble(1)));
+                    color.put("colorMode", ColorMode.CIEXYZ);
+                    color.put("components", new float[] { (float)arr.getDouble(0), (float)arr.getDouble(1) });
                 }
                 else if( mode.equalsIgnoreCase("ct") ) {
                     int warmth = (state.has("ct") ? state.getInt("ct") : 154);
                     int brightness = (state.has("bri") ? state.getInt("bri") : 0);
 
-                    map.put("color", new Color(ColorMode.CT, warmth, brightness/254));
+                    color.put("colorMode", ColorMode.CT);
+                    color.put("components", new float[] { warmth, brightness/254 });
                 }
                 else {
                     float h = (state.has("hue") ? (float)state.getDouble("hue")/182.04f : 360f);
                     int s = (state.has("sat") ? (state.getInt("sat")*100)/255 : 100);
 
-                    map.put("color", new Color(ColorMode.HSV, h, s));
+                    color.put("colorMode", ColorMode.HSV);
+                    color.put("components", new float[] { h, s});
                 }
+                map.put("color", color);
             }
             else {
                 throw new CommunicationException("No color information is present");
@@ -555,6 +560,7 @@ public class HueBulb implements Light {
         map.put("name", name);
         map.put("description", name);
         map.put("deviceType", "light");
+        map.put("systemId", hue.getId());
         ArrayList<ColorMode> modes = new ArrayList<ColorMode>();
 
         for( ColorMode m : hue.listNativeColorModes() ) {

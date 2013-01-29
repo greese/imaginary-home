@@ -181,12 +181,13 @@ public class RelayCall extends APICall {
                     for( int i=0; i<devices.length(); i++ ) {
                         JSONObject device = devices.getJSONObject(i);
 
-                        if( !device.has("id") || device.isNull("id") || !device.has("deviceType") || !device.isNull("deviceType") ) {
+                        if( !device.has("id") || device.isNull("id") || !device.has("deviceType") || device.isNull("deviceType") || !device.has("systemId") || device.isNull("systemId") ) {
                             continue;
                         }
                         String id = device.getString("id");
                         String t = device.getString("deviceType");
-                        Device d = Device.getDevice(t, relay.getControllerRelayId() + ":" + id);
+                        String systemId = device.getString("systemId");
+                        Device d = Device.getDevice(t, relay, systemId, id);
 
                         if( d == null ) {
                             d = Device.create(relay, t, device);

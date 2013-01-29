@@ -20,6 +20,7 @@ import org.dasein.persist.DataIntegrityException;
 import org.dasein.persist.Memento;
 import org.dasein.persist.PersistenceException;
 import org.dasein.persist.PersistentCache;
+import org.dasein.persist.SearchTerm;
 import org.dasein.persist.Transaction;
 import org.dasein.persist.annotations.Index;
 import org.dasein.persist.annotations.IndexType;
@@ -27,6 +28,7 @@ import org.dasein.util.CachedItem;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -55,7 +57,7 @@ public class ControllerRelay implements CachedItem {
             id = UUID.randomUUID().toString();
         } while( getRelay(id) != null );
 
-        String key = Configuration.encrypt(location.getLocationId(), Configuration.generateToken(32, 32)).toUpperCase();
+        String key = Configuration.encrypt(location.getLocationId(), Configuration.generateToken(32, 32).toUpperCase());
         HashMap<String,Object> state = new HashMap<String, Object>();
 
         state.put("apiKeySecret", key);
@@ -75,6 +77,10 @@ public class ControllerRelay implements CachedItem {
         finally {
             xaction.rollback();
         }
+    }
+
+    static public @Nonnull Collection<ControllerRelay> findRelaysInLocation(@Nonnull Location location) throws PersistenceException {
+        return getCache().find(new SearchTerm("locationId", location.getLocationId()));
     }
 
     static public @Nullable ControllerRelay getRelay(@Nonnull String id) throws PersistenceException {
