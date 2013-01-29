@@ -76,6 +76,7 @@ public class PoweredDevice extends Device {
 
     static public void findPoweredDevicesForRelayWithChildren(@Nonnull ControllerRelay relay, @Nonnull Collection<Device> devices) throws PersistenceException {
         devices.addAll(findPoweredDevicesForRelay(relay));
+        Light.findLightssForRelayWithChildren(relay, devices);
     }
 
     static public @Nullable PoweredDevice getPoweredDevice(@Nonnull String deviceId) throws PersistenceException {
@@ -83,9 +84,12 @@ public class PoweredDevice extends Device {
     }
 
     static public @Nullable PoweredDevice getPoweredDevice(@Nonnull ControllerRelay relay, @Nonnull String systemId, @Nonnull String vendorDeviceId) throws PersistenceException {
-        Iterator<PoweredDevice> it = getCache().find(new SearchTerm("systemId", systemId), new SearchTerm("vendorDeviceId", vendorDeviceId), new SearchTerm("relayId", relay.getControllerRelayId())).iterator();
-
-        return (it.hasNext() ? it.next() : null);
+        for( PoweredDevice d : findPoweredDevicesForRelay(relay) ) {
+            if( d.getHomeAutomationSystemId().equals(systemId) && d.getVendorDeviceId().equals(vendorDeviceId) ) {
+                return d;
+            }
+        }
+        return null;
     }
 
     static public void mapPoweredDevice(@Nonnull ControllerRelay relay, @Nonnull JSONObject json, @Nonnull Map<String,Object> state) throws JSONException {

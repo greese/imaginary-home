@@ -27,6 +27,7 @@ import com.imaginary.home.cloud.device.Light;
 import com.imaginary.home.cloud.device.PoweredDevice;
 import com.imaginary.home.cloud.user.User;
 import com.imaginary.home.lighting.Color;
+import org.apache.log4j.Logger;
 import org.dasein.persist.PersistenceException;
 import org.dasein.util.uom.time.Minute;
 import org.dasein.util.uom.time.TimePeriod;
@@ -42,6 +43,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -54,12 +56,19 @@ import java.util.Map;
  * @author George Reese
  */
 public class DeviceCall extends APICall {
+    static private final Logger logger = Logger.getLogger(DeviceCall.class);
 
     @Override
     public void get(@Nonnull String requestId, @Nullable String userId, @Nonnull String[] path, @Nonnull HttpServletRequest req, @Nonnull HttpServletResponse resp, @Nonnull Map<String,Object> headers, @Nonnull Map<String,Object> parameters) throws RestException, IOException {
+        if( logger.isDebugEnabled() ) {
+            logger.debug("GET " + req.getRequestURI());
+        }
         try {
             String deviceId = (path.length > 1 ? path[1] : null);
 
+            if( logger.isDebugEnabled() ) {
+                logger.debug("deviceId=" + deviceId);
+            }
             if( deviceId != null ) {
                 Device device = Device.getDevice(deviceId);
 
@@ -75,6 +84,10 @@ public class DeviceCall extends APICall {
                 String deviceType = req.getParameter("deviceType");
                 String tmp = req.getParameter("includeChildren");
                 boolean includeChildren = (tmp != null && tmp.equalsIgnoreCase("true"));
+
+                if( logger.isDebugEnabled() ) {
+                    logger.debug("Params=" + locationId + " / " + deviceType + " / " + includeChildren);
+                }
                 User user = (userId != null ? User.getUserByUserId(userId) : null);
                 ControllerRelay relay = (user == null ? ControllerRelay.getRelay((String)headers.get(RestApi.API_KEY)) : null);
                 Location location = (locationId == null ? null : Location.getLocation(locationId));
@@ -120,6 +133,9 @@ public class DeviceCall extends APICall {
                     }
 
                 }
+                if( logger.isDebugEnabled() ) {
+                    logger.debug("relays=" + relays);
+                }
                 ArrayList<Device> devices = new ArrayList<Device>();
 
                 for( ControllerRelay r : relays ) {
@@ -140,6 +156,9 @@ public class DeviceCall extends APICall {
                     else {
                         throw new RestException(HttpServletResponse.SC_BAD_REQUEST, RestException.INVALID_DEVICE_TYPE, "Invalid device type: " + deviceType);
                     }
+                }
+                if( logger.isDebugEnabled() ) {
+                    logger.debug("devices=" + devices);
                 }
                 ArrayList<Map<String,Object>> list = new ArrayList<Map<String, Object>>();
 

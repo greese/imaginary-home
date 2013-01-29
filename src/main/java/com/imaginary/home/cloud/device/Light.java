@@ -19,6 +19,7 @@ package com.imaginary.home.cloud.device;
 import com.imaginary.home.cloud.ControllerRelay;
 import com.imaginary.home.lighting.Color;
 import com.imaginary.home.lighting.ColorMode;
+import org.apache.log4j.Logger;
 import org.dasein.persist.Memento;
 import org.dasein.persist.PersistenceException;
 import org.dasein.persist.PersistentCache;
@@ -46,6 +47,8 @@ import java.util.Map;
  * @author George Reese
  */
 public class Light extends PoweredDevice {
+    static private final Logger logger = Logger.getLogger(Light.class);
+
     static private PersistentCache<Light> cache;
 
     static private @Nonnull PersistentCache<Light> getCache() throws PersistenceException {
@@ -56,7 +59,14 @@ public class Light extends PoweredDevice {
         return cache;
     }
 
-    static @Nonnull PoweredDevice createLight(@Nonnull ControllerRelay relay, @Nonnull JSONObject json) throws JSONException, PersistenceException {
+    static @Nonnull Light createLight(@Nonnull ControllerRelay relay, @Nonnull JSONObject json) throws JSONException, PersistenceException {
+        System.out.println("Creating light for " + relay.getControllerRelayId());
+        if( logger.isInfoEnabled() ) {
+            logger.info("Creating light for " + relay.getControllerRelayId());
+        }
+        if( logger.isDebugEnabled() ) {
+            logger.debug("DATA=" + json.toString());
+        }
         HashMap<String,Object> state = new HashMap<String, Object>();
 
         mapLight(relay, json, state);
@@ -64,10 +74,14 @@ public class Light extends PoweredDevice {
         Transaction xaction = Transaction.getInstance();
 
         try {
-            PoweredDevice d = getCache().create(xaction, state);
+            Light light = getCache().create(xaction, state);
 
             xaction.commit();
-            return d;
+            if( logger.isDebugEnabled() ) {
+                logger.debug("newLight=" + light);
+            }
+            System.out.println("result=" + light);
+            return light;
         }
         finally {
             xaction.rollback();
@@ -209,11 +223,18 @@ public class Light extends PoweredDevice {
 
     @Override
     public void remove() throws PersistenceException {
+        System.out.println("Remove light " + getDeviceId());
+        if( logger.isInfoEnabled() ) {
+            logger.info("Removing: " + getDeviceId());
+        }
         Transaction xaction = Transaction.getInstance();
 
         try {
             getCache().remove(xaction, this);
             xaction.commit();
+            if( logger.isInfoEnabled() ) {
+                logger.info("Removed: " + getDeviceId());
+            }
         }
         finally {
             xaction.rollback();
@@ -226,6 +247,12 @@ public class Light extends PoweredDevice {
 
     @Override
     public void update(@Nonnull JSONObject json) throws PersistenceException {
+        if( logger.isInfoEnabled() ) {
+            logger.info("Updating: " + getDeviceId());
+        }
+        if( logger.isDebugEnabled() ) {
+            logger.debug("DATA=" + json.toString());
+        }
         try {
             Memento<Light> memento = new Memento<Light>(this);
             Map<String,Object> state = new HashMap<String, Object>();
@@ -241,6 +268,9 @@ public class Light extends PoweredDevice {
             try {
                 getCache().update(xaction, this, state);
                 xaction.commit();
+                if( logger.isInfoEnabled() ) {
+                    logger.info("Updated: " + getDeviceId());
+                }
             }
             finally {
                 xaction.rollback();

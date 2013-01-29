@@ -50,6 +50,7 @@ public abstract class Device implements CachedItem {
     }
 
     static public @Nonnull Collection<Device> findDevicesForRelay(@Nonnull ControllerRelay relay) throws PersistenceException {
+        System.out.println("Finding all devices for " + relay.getControllerRelayId());
         ArrayList<Device> devices = new ArrayList<Device>();
 
         PoweredDevice.findPoweredDevicesForRelayWithChildren(relay, devices);
