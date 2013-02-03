@@ -19,6 +19,7 @@ package com.imaginary.home.cloud.api.call;
 import com.imaginary.home.cloud.ControllerRelay;
 import com.imaginary.home.cloud.Location;
 import com.imaginary.home.cloud.PendingCommand;
+import com.imaginary.home.cloud.PendingCommandState;
 import com.imaginary.home.cloud.api.APICall;
 import com.imaginary.home.cloud.api.RestApi;
 import com.imaginary.home.cloud.api.RestException;
@@ -26,12 +27,16 @@ import com.imaginary.home.cloud.device.Device;
 import com.imaginary.home.cloud.user.User;
 import org.dasein.persist.PersistenceException;
 import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -56,6 +61,17 @@ public class CommandCall extends APICall {
         json.put("state", cmd.getState().name());
         json.put("issuedTimestamp", cmd.getIssuedTimestamp());
         json.put("issuedBy", cmd.getIssuedBy());
+
+        Boolean b = cmd.getResult();
+
+        if( b != null ) {
+            json.put("result", b);
+        }
+        String error = cmd.getErrorMessage();
+
+        if( error !=null ) {
+            json.put("errorMessage", error);
+        }
         t = cmd.getSentTimestamp();
         if( t != null ) {
             json.put("sentTimestamp", t);
@@ -164,8 +180,37 @@ public class CommandCall extends APICall {
             if( cmd == null ) {
                 throw new RestException(HttpServletResponse.SC_NOT_FOUND, RestException.NO_SUCH_OBJECT, "No such command: " + commandId);
             }
-            // TODO: PERFORM UPDATE
-            resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(req.getInputStream()));
+            StringBuilder source = new StringBuilder();
+            String line;
+
+            while( (line = reader.readLine()) != null ) {
+                source.append(line);
+                source.append(" ");
+            }
+            JSONObject object = new JSONObject(source.toString());
+            String action;
+
+            if( object.has("action") && !object.isNull("action") ) {
+                action = object.getString("action");
+            }
+            else {
+                throw new RestException(HttpServletResponse.SC_BAD_REQUEST, RestException.INVALID_ACTION, "An invalid action was specified (or not specified) in the PUT");
+            }
+            if( action.equals("complete") ) {
+                object = object.getJSONObject("result");
+                boolean result = (object.has("result") && object.getBoolean("result"));
+                String errorMessage = (object.has("errorMessage") ? object.getString("errorMessage") : null);
+
+                cmd.update(PendingCommandState.EXECUTED, result, errorMessage);
+                resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+            }
+            else {
+                throw new RestException(HttpServletResponse.SC_BAD_REQUEST, RestException.INVALID_ACTION, "The action " + action + " is not a valid action.");
+            }
+        }
+        catch( JSONException e ) {
+            throw new RestException(HttpServletResponse.SC_BAD_REQUEST, RestException.INVALID_JSON, "Invalid JSON in request");
         }
         catch( PersistenceException e ) {
             throw new RestException(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, RestException.INTERNAL_ERROR, e.getMessage());

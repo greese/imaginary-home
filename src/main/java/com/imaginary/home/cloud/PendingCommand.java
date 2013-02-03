@@ -177,6 +177,7 @@ public class PendingCommand implements CachedItem {
     private Long                completionTimestamp;
     @Index(type=IndexType.SECONDARY)
     private String[]            deviceIds;
+    private String              errorMessage;
     @Index(type=IndexType.SECONDARY)
     private String              groupId;
     @Index(type=IndexType.SECONDARY)
@@ -186,6 +187,7 @@ public class PendingCommand implements CachedItem {
     private String              pendingCommandId;
     @Index(type=IndexType.FOREIGN, identifies= ControllerRelay.class)
     private String              relayId;
+    private boolean             result;
     private Long                sentTimestamp;
     @Index(type=IndexType.SECONDARY, multi={"relayId"}, cascade = true)
     private PendingCommandState state;
@@ -203,6 +205,10 @@ public class PendingCommand implements CachedItem {
 
     public @Nonnull String[] getDeviceIds() {
         return deviceIds;
+    }
+
+    public @Nullable String getErrorMessage() {
+        return errorMessage;
     }
 
     public @Nonnull String getGroupId() {
@@ -225,6 +231,13 @@ public class PendingCommand implements CachedItem {
         return relayId;
     }
 
+    public @Nullable Boolean getResult() {
+        if( !state.equals(PendingCommandState.EXECUTED) ) {
+            return null;
+        }
+        return result;
+    }
+
     public @Nullable Long getSentTimestamp() {
         return sentTimestamp;
     }
@@ -239,5 +252,33 @@ public class PendingCommand implements CachedItem {
 
     public boolean isValidForCache() {
         return false;
+    }
+
+    public void update(@Nonnull PendingCommandState state, Boolean result, @Nullable String errorMessage) throws PersistenceException {
+        Map<String,Object> data = new HashMap<String, Object>();
+        Memento<PendingCommand> memento = new Memento<PendingCommand>(this);
+
+        memento.save(data);
+        data = memento.getState();
+        data.put("state", state);
+        if( result != null ) {
+            data.put("result", result);
+        }
+        if( !this.state.equals(state) && state.equals(PendingCommandState.EXECUTED) ) {
+            data.put("completionTimestamp", System.currentTimeMillis());
+        }
+        if( errorMessage != null ) {
+            data.put("errorMessage", errorMessage);
+        }
+        Transaction xaction = Transaction.getInstance();
+
+        try {
+            getCache().update(xaction, this, data);
+            xaction.commit();
+            memento.load(data);
+        }
+        finally {
+            xaction.rollback();
+        }
     }
 }
