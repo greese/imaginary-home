@@ -23,6 +23,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.HttpVersion;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.conn.params.ConnRoutePNames;
@@ -121,7 +122,7 @@ public class CloudService {
             e.printStackTrace();
             throw new CommunicationException(e);
         }
-        if( status.getStatusCode() == HttpServletResponse.SC_OK ) {
+        if( status.getStatusCode() == HttpServletResponse.SC_CREATED ) {
             HttpEntity entity = response.getEntity();
 
             if( entity == null ) {
@@ -140,7 +141,7 @@ public class CloudService {
                 String apiKeyId = null, apiSecret = null;
 
                 if( ob.has("apiKeyId") && !ob.isNull("apiKeyId") ) {
-                    apiKeyId = ob.getString("locationId");
+                    apiKeyId = ob.getString("apiKeyId");
                 }
                 if( ob.has("apiKeySecret") && !ob.isNull("apiKeySecret") ) {
                     apiSecret = ob.getString("apiKeySecret");
@@ -262,7 +263,7 @@ public class CloudService {
 
         do {
             HttpClient client = getClient(endpoint, proxyHost, proxyPort);
-            HttpPut method = new HttpPut(endpoint + "/relay/" + serviceId + "/state");
+            HttpPut method = new HttpPut(endpoint + "/command");
             long timestamp = System.currentTimeMillis();
 
             method.addHeader("Content-Type", "application/json");
@@ -273,7 +274,7 @@ public class CloudService {
             if( token == null ) {
                 authenticate();
             }
-            String stringToSign = "GET:/command:" + serviceId + ":" + token + ":" + timestamp + ":" + VERSION;
+            String stringToSign = "put:/command:" + serviceId + ":" + token + ":" + timestamp + ":" + VERSION;
 
             try {
                 method.addHeader("x-imaginary-signature", sign(apiKeySecret.getBytes("utf-8"), stringToSign));
@@ -347,8 +348,8 @@ public class CloudService {
                     }
                     String commandId;
 
-                    if( remoteCommand.has("id") && !remoteCommand.isNull("id") ) {
-                        commandId = remoteCommand.getString("id");
+                    if( remoteCommand.has("commandId") && !remoteCommand.isNull("commandId") ) {
+                        commandId = remoteCommand.getString("commandId");
                     }
                     else {
                         continue;
@@ -489,19 +490,9 @@ public class CloudService {
         return serviceId;
     }
 
-    public boolean hasCommands() {
-        // TODO: implement me
-        return false;
-    }
-
-    public boolean postAlert() {
-        // TODO: define API for posting an alert
-        return false;
-    }
-
-    public boolean postState() throws CommunicationException, ControllerException {
+    public boolean hasCommands() throws CommunicationException, ControllerException {
         HttpClient client = getClient(endpoint, proxyHost, proxyPort);
-        HttpPut method = new HttpPut(endpoint + "/relay/" + serviceId + "/state");
+        HttpHead method = new HttpHead(endpoint + "/command");
         long timestamp = System.currentTimeMillis();
 
         method.addHeader("Content-Type", "application/json");
@@ -512,7 +503,54 @@ public class CloudService {
         if( token == null ) {
             authenticate();
         }
-        String stringToSign = "PUT:/relay" + serviceId + "/state:" + serviceId + ":" + token + ":" + timestamp + ":" + VERSION;
+        String stringToSign = "head:/command:" + serviceId + ":" + token + ":" + timestamp + ":" + VERSION;
+
+        try {
+            method.addHeader("x-imaginary-signature", sign(apiKeySecret.getBytes("utf-8"), stringToSign));
+        }
+        catch( Exception e ) {
+            throw new ControllerException(e);
+        }
+
+        HttpResponse response;
+        StatusLine status;
+
+        try {
+            response = client.execute(method);
+            status = response.getStatusLine();
+        }
+        catch( IOException e ) {
+            e.printStackTrace();
+            throw new CommunicationException(e);
+        }
+        if( status.getStatusCode() != HttpServletResponse.SC_NO_CONTENT ) {
+            parseError(response); // this will throw an exception
+        }
+        Header h = response.getFirstHeader("x-imaginary-has-commands");
+        String val = (h == null ? "false" : h.getValue());
+
+        return (val != null && val.equalsIgnoreCase("true"));
+    }
+
+    public boolean postAlert() {
+        // TODO: define API for posting an alert
+        return false;
+    }
+
+    public boolean postState() throws CommunicationException, ControllerException {
+        HttpClient client = getClient(endpoint, proxyHost, proxyPort);
+        HttpPut method = new HttpPut(endpoint + "/relay/" + serviceId);
+        long timestamp = System.currentTimeMillis();
+
+        method.addHeader("Content-Type", "application/json");
+        method.addHeader("x-imaginary-version", VERSION);
+        method.addHeader("x-imaginary-timestamp", String.valueOf(timestamp));
+        method.addHeader("x-imaginary-api-key", serviceId);
+
+        if( token == null ) {
+            authenticate();
+        }
+        String stringToSign = "PUT:/relay" + serviceId + ":" + serviceId + ":" + token + ":" + timestamp + ":" + VERSION;
 
         try {
             method.addHeader("x-imaginary-signature", sign(apiKeySecret.getBytes("utf-8"), stringToSign));
@@ -559,8 +597,61 @@ public class CloudService {
         return (val != null && val.equalsIgnoreCase("true"));
     }
 
-    public boolean postResult(@Nonnull String cmdId, boolean stateChanged, @Nullable Map<String, Object> result, @Nullable Throwable exception) {
-        // TODO: implement me
-        return false;
+    public boolean postResult(@Nonnull String cmdId, boolean stateChanged, @Nullable Throwable exception) throws CommunicationException, ControllerException {
+        HttpClient client = getClient(endpoint, proxyHost, proxyPort);
+        HttpPut method = new HttpPut(endpoint + "/command/" + cmdId);
+        long timestamp = System.currentTimeMillis();
+
+        method.addHeader("Content-Type", "application/json");
+        method.addHeader("x-imaginary-version", VERSION);
+        method.addHeader("x-imaginary-timestamp", String.valueOf(timestamp));
+        method.addHeader("x-imaginary-api-key", serviceId);
+
+        if( token == null ) {
+            authenticate();
+        }
+        String stringToSign = "PUT:/command/" + cmdId + ":" + serviceId + ":" + token + ":" + timestamp + ":" + VERSION;
+
+        try {
+            method.addHeader("x-imaginary-signature", sign(apiKeySecret.getBytes("utf-8"), stringToSign));
+        }
+        catch( Exception e ) {
+            throw new ControllerException(e);
+        }
+        HashMap<String,Object> state = new HashMap<String,Object>();
+
+        state.put("action", "complete");
+        Map<String,Object> result = new HashMap<String, Object>();
+
+        result.put("result", stateChanged);
+        if( exception != null ) {
+            result.put("errorMessage", exception.getMessage());
+        }
+        state.put("result", result);
+        try {
+            //noinspection deprecation
+            method.setEntity(new StringEntity((new JSONObject(state)).toString(), "application/json", "UTF-8"));
+        }
+        catch( UnsupportedEncodingException e ) {
+            throw new ControllerException(e);
+        }
+        HttpResponse response;
+        StatusLine status;
+
+        try {
+            response = client.execute(method);
+            status = response.getStatusLine();
+        }
+        catch( IOException e ) {
+            e.printStackTrace();
+            throw new CommunicationException(e);
+        }
+        if( status.getStatusCode() != HttpServletResponse.SC_NO_CONTENT ) {
+            parseError(response); // this will throw an exception
+        }
+        Header h = response.getFirstHeader("x-imaginary-has-commands");
+        String val = (h == null ? "false" : h.getValue());
+
+        return (val != null && val.equalsIgnoreCase("true"));
     }
 }

@@ -22,6 +22,21 @@ import com.imaginary.home.cloud.api.APICall;
 import com.imaginary.home.cloud.api.RestApi;
 import com.imaginary.home.cloud.api.RestException;
 import com.imaginary.home.cloud.user.User;
+import com.imaginary.home.controller.CloudService;
+import com.imaginary.home.controller.CommunicationException;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpVersion;
+import org.apache.http.StatusLine;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpParams;
+import org.apache.http.params.HttpProtocolParams;
+import org.apache.http.protocol.HTTP;
+import org.apache.http.util.EntityUtils;
 import org.dasein.persist.PersistenceException;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -255,5 +270,140 @@ public class LocationCall extends APICall {
         json.put("timeZone", location.getTimeZone().getID());
         json.put("locationId", location.getLocationId());
         return json;
+    }
+
+    static public void main(String ... args) throws Exception {
+        if( args.length < 1 ) {
+            System.err.println("You must specify an action");
+            System.exit(-1);
+            return;
+        }
+        String action = args[0];
+
+        if( action.equalsIgnoreCase("initializePairing") ) {
+            if( args.length < 5 ) {
+                System.err.println("You must specify a location ID");
+                System.exit(-2);
+                return;
+            }
+            String endpoint = args[1];
+            String locationId = args[2];
+            String apiKeyId = args[3];
+            String apiKeySecret = args[4];
+
+            HashMap<String,Object> act = new HashMap<String, Object>();
+
+            act.put("action", "initializePairing");
+
+            HttpParams params = new BasicHttpParams();
+
+            HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
+            //noinspection deprecation
+            HttpProtocolParams.setContentCharset(params, HTTP.UTF_8);
+            HttpProtocolParams.setUserAgent(params, "Imaginary Home");
+
+            HttpClient client = new DefaultHttpClient(params);
+
+            HttpPut method = new HttpPut(endpoint + "/location/" + locationId);
+            long timestamp = System.currentTimeMillis();
+
+            method.addHeader("Content-Type", "application/json");
+            method.addHeader("x-imaginary-version", CloudService.VERSION);
+            method.addHeader("x-imaginary-timestamp", String.valueOf(timestamp));
+            method.addHeader("x-imaginary-api-key", apiKeyId);
+            method.addHeader("x-imaginary-signature", CloudService.sign(apiKeySecret.getBytes("utf-8"), "put:/location/" + locationId + ":" + apiKeyId + ":" + timestamp + ":" + CloudService.VERSION));
+
+            //noinspection deprecation
+            method.setEntity(new StringEntity((new JSONObject(act)).toString(), "application/json", "UTF-8"));
+
+            HttpResponse response;
+            StatusLine status;
+
+            try {
+                response = client.execute(method);
+                status = response.getStatusLine();
+            }
+            catch( IOException e ) {
+                e.printStackTrace();
+                throw new CommunicationException(e);
+            }
+            if( status.getStatusCode() == HttpServletResponse.SC_OK ) {
+                String json = EntityUtils.toString(response.getEntity());
+                JSONObject u = new JSONObject(json);
+
+                System.out.println((u.has("pairingCode") && !u.isNull("pairingCode")) ? u.getString("pairingCode") : "--no code--");
+            }
+            else {
+                System.err.println("Failed to initialize pairing  (" + status.getStatusCode() + ": " + EntityUtils.toString(response.getEntity()));
+                System.exit(status.getStatusCode());
+            }
+        }
+        else if( action.equalsIgnoreCase("create") ) {
+            if( args.length < 7 ) {
+                System.err.println("create ENDPOINT NAME DESCRIPTION TIMEZONE API_KEY_ID API_KEY_SECRET");
+                System.exit(-2);
+                return;
+            }
+            String endpoint = args[1];
+            String name = args[2];
+            String description = args[3];
+            String tz = args[4];
+            String apiKeyId = args[5];
+            String apiKeySecret = args[6];
+
+            HashMap<String,Object> lstate = new HashMap<String, Object>();
+
+            lstate.put("name", name);
+            lstate.put("description", description);
+            lstate.put("timeZone", tz);
+
+            HttpParams params = new BasicHttpParams();
+
+            HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
+            //noinspection deprecation
+            HttpProtocolParams.setContentCharset(params, HTTP.UTF_8);
+            HttpProtocolParams.setUserAgent(params, "Imaginary Home");
+
+            HttpClient client = new DefaultHttpClient(params);
+
+            HttpPost method = new HttpPost(endpoint + "/location");
+            long timestamp = System.currentTimeMillis();
+
+            System.out.println("Signing: " + "post:/location:" + apiKeyId + ":" + timestamp + ":" + CloudService.VERSION);
+            method.addHeader("Content-Type", "application/json");
+            method.addHeader("x-imaginary-version", CloudService.VERSION);
+            method.addHeader("x-imaginary-timestamp", String.valueOf(timestamp));
+            method.addHeader("x-imaginary-api-key", apiKeyId);
+            method.addHeader("x-imaginary-signature", CloudService.sign(apiKeySecret.getBytes("utf-8"), "post:/location:" + apiKeyId + ":" + timestamp + ":" + CloudService.VERSION));
+
+            //noinspection deprecation
+            method.setEntity(new StringEntity((new JSONObject(lstate)).toString(), "application/json", "UTF-8"));
+
+            HttpResponse response;
+            StatusLine status;
+
+            try {
+                response = client.execute(method);
+                status = response.getStatusLine();
+            }
+            catch( IOException e ) {
+                e.printStackTrace();
+                throw new CommunicationException(e);
+            }
+            if( status.getStatusCode() == HttpServletResponse.SC_CREATED ) {
+                String json = EntityUtils.toString(response.getEntity());
+                JSONObject u = new JSONObject(json);
+
+                System.out.println((u.has("locationId") && !u.isNull("locationId")) ? u.getString("locationId") : "--no location--");
+            }
+            else {
+                System.err.println("Failed to create location  (" + status.getStatusCode() + ": " + EntityUtils.toString(response.getEntity()));
+                System.exit(status.getStatusCode());
+            }
+        }
+        else {
+            System.err.println("No such action: " + action);
+            System.exit(-3);
+        }
     }
 }

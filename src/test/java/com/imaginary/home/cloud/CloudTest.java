@@ -208,12 +208,12 @@ public class CloudTest {
         if( apiKeyId == null ) {
             setupUser();
         }
-        HashMap<String,Object> user = new HashMap<String, Object>();
+        HashMap<String,Object> lstate = new HashMap<String, Object>();
         long key = (System.currentTimeMillis()%100000);
 
-        user.put("name", "My Home " + key);
-        user.put("description", "Integration test location");
-        user.put("timeZone", TimeZone.getDefault().getID());
+        lstate.put("name", "My Home " + key);
+        lstate.put("description", "Integration test location");
+        lstate.put("timeZone", TimeZone.getDefault().getID());
 
         HttpClient client = getClient();
 
@@ -227,7 +227,7 @@ public class CloudTest {
         method.addHeader("x-imaginary-signature", CloudService.sign(apiKeySecret.getBytes("utf-8"), "post:/location:" + apiKeyId + ":" + timestamp + ":" + VERSION));
 
         //noinspection deprecation
-        method.setEntity(new StringEntity((new JSONObject(user)).toString(), "application/json", "UTF-8"));
+        method.setEntity(new StringEntity((new JSONObject(lstate)).toString(), "application/json", "UTF-8"));
 
         HttpResponse response;
         StatusLine status;

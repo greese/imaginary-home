@@ -132,7 +132,7 @@ public class RestApi extends HttpServlet {
                 throw new RestException(e);
             }
             if( !signature.equals(expected) ) {
-                throw new RestException(HttpServletResponse.SC_FORBIDDEN, "Invalid Signature", "String to sign was: " + stringToSign);
+                throw new RestException(HttpServletResponse.SC_FORBIDDEN, RestException.INVALID_SIGNATURE, "String to sign was: " + stringToSign);
             }
             return userId;
         }

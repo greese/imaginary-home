@@ -95,10 +95,6 @@ public class HomeController {
         return homeController;
     }
 
-    static public @Nonnull String now() {
-        return formatDate(new Date());
-    }
-
     static public long parseDate(@Nonnull String timestring) throws ParseException {
         SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
@@ -256,7 +252,7 @@ public class HomeController {
 
                                 if( f == null ) {
                                     try {
-                                        service.postResult(cmd.getString("id"), false, null, new JSONException("Invalid JSON in command"));
+                                        service.postResult(cmd.getString("id"), false, new JSONException("Invalid JSON in command"));
                                     }
                                     catch( Throwable t ) {
                                         t.printStackTrace();
@@ -276,7 +272,7 @@ public class HomeController {
                                         failure = t;
                                     }
                                     try {
-                                        service.postResult(cmd.getString("id"), result, null, failure);
+                                        service.postResult(cmd.getString("id"), result, failure);
                                     }
                                     catch( Throwable t ) {
                                         t.printStackTrace();
@@ -577,12 +573,19 @@ public class HomeController {
         return automationSystems.values();
     }
 
-    // TODO: identify a mechanism for initiating this pairing call
     public @Nonnull String pairService(@Nonnull String name, @Nonnull String endpoint, @Nullable String proxyHost, int proxyPort, @Nonnull String pairingToken) throws ControllerException, CommunicationException {
         CloudService service = CloudService.pair(name, endpoint, proxyHost, proxyPort, pairingToken);
 
-        cloudServices.add(service);
-        saveConfiguration();
+        synchronized( commandQueue ) {
+            try {
+                loadConfiguration();
+            }
+            catch( Exception e ) {
+                throw new ControllerException("Failed to load current system state: " + e.getMessage());
+            }
+            cloudServices.add(service);
+            saveConfiguration();
+        }
         return service.getServiceId();
     }
 
@@ -593,8 +596,16 @@ public class HomeController {
 
             system.init(id, authProperties, customProperties);
             system.pair("IHA");
-            automationSystems.put(system.getId(), system);
-            saveConfiguration();
+            synchronized( commandQueue ) {
+                try {
+                    loadConfiguration();
+                }
+                catch( Exception e ) {
+                    throw new ControllerException("Failed to load current system state: " + e.getMessage());
+                }
+                automationSystems.put(system.getId(), system);
+                saveConfiguration();
+            }
             return id;
         }
         catch( ClassNotFoundException e ) {
@@ -706,7 +717,7 @@ public class HomeController {
 
                                 if( f == null ) {
                                     try {
-                                        service.postResult(cmd.getString("id"), false, null, new JSONException("Invalid JSON in command"));
+                                        service.postResult(cmd.getString("id"), false, new JSONException("Invalid JSON in command"));
                                     }
                                     catch( Throwable t ) {
                                         t.printStackTrace();
@@ -726,7 +737,7 @@ public class HomeController {
                                         failure = t;
                                     }
                                     try {
-                                        service.postResult(cmd.getString("id"), result, null, failure);
+                                        service.postResult(cmd.getString("id"), result, failure);
                                     }
                                     catch( Throwable t ) {
                                         t.printStackTrace();
@@ -817,73 +828,65 @@ public class HomeController {
     }
 
     private void saveConfiguration() throws ControllerException {
-        synchronized( commandQueue ) {
+        ArrayList<Map<String,Object>> all = new ArrayList<Map<String, Object>>();
+        HashMap<String,Object> cfg = new HashMap<String, Object>();
+
+        cfg.put("name", name);
+        for( HomeAutomationSystem sys : listSystems() ) {
+            HashMap<String,Object> json = new HashMap<String, Object>();
+
+            json.put("cname", sys.getClass().getName());
+            json.put("id", sys.getId());
+            json.put("authenticationProperties", sys.getAuthenticationProperties());
+            json.put("customProperties", sys.getCustomProperties());
+            all.add(json);
+        }
+        cfg.put("systems", all);
+        all = new ArrayList<Map<String, Object>>();
+        for( CloudService service : cloudServices ) {
+            HashMap<String,Object> json = new HashMap<String, Object>();
+
+            json.put("id", service.getServiceId());
+            json.put("name", service.getName());
+            json.put("endpoint", service.getEndpoint());
+            json.put("apiKeySecret", service.getApiKeySecret());
+            if( service.getProxyHost() != null ) {
+                json.put("proxyHost", service.getProxyHost());
+                json.put("proxyPort", service.getProxyPort());
+            }
+            all.add(json);
+        }
+        cfg.put("services", all);
+        try {
+            File f = new File(CONFIG_FILE);
+            File backup = null;
+
+            if( f.exists() ) {
+                backup = new File(CONFIG_FILE + "." + System.currentTimeMillis());
+                if( !f.renameTo(backup) ) {
+                    throw new ControllerException("Unable to make backup of configuration file");
+                }
+                f = new File(CONFIG_FILE);
+            }
+            boolean success = false;
             try {
-                loadConfiguration();
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(f)));
+
+                writer.write((new JSONObject(cfg)).toString());
+                writer.newLine();
+                writer.flush();
+                writer.close();
+                success = true;
             }
-            catch( Exception e ) {
-                throw new ControllerException("Failed to load current system state: " + e.getMessage());
-            }
-            ArrayList<Map<String,Object>> all = new ArrayList<Map<String, Object>>();
-            HashMap<String,Object> cfg = new HashMap<String, Object>();
-
-            cfg.put("name", name);
-            for( HomeAutomationSystem sys : listSystems() ) {
-                HashMap<String,Object> json = new HashMap<String, Object>();
-
-                json.put("cname", sys.getClass().getName());
-                json.put("id", sys.getId());
-                json.put("authenticationProperties", sys.getAuthenticationProperties());
-                json.put("customProperties", sys.getCustomProperties());
-                all.add(json);
-            }
-            cfg.put("systems", all);
-            all = new ArrayList<Map<String, Object>>();
-            for( CloudService service : cloudServices ) {
-                HashMap<String,Object> json = new HashMap<String, Object>();
-
-                json.put("id", service.getServiceId());
-                json.put("name", service.getName());
-                json.put("endpoint", service.getEndpoint());
-                json.put("apiKeySecret", service.getApiKeySecret());
-                if( service.getProxyHost() != null ) {
-                    json.put("proxyHost", service.getProxyHost());
-                    json.put("proxyPort", service.getProxyPort());
-                }
-                all.add(json);
-            }
-            cfg.put("services", all);
-            try {
-                File f = new File(CONFIG_FILE);
-                File backup = null;
-
-                if( f.exists() ) {
-                    backup = new File(CONFIG_FILE + "." + System.currentTimeMillis());
-                    if( !f.renameTo(backup) ) {
-                        throw new ControllerException("Unable to make backup of configuration file");
-                    }
-                    f = new File(CONFIG_FILE);
-                }
-                boolean success = false;
-                try {
-                    BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(f)));
-
-                    writer.write((new JSONObject(cfg)).toString());
-                    writer.newLine();
-                    writer.flush();
-                    writer.close();
-                    success = true;
-                }
-                finally {
-                    if( !success && backup != null ) {
-                        //noinspection ResultOfMethodCallIgnored
-                        backup.renameTo(f);
-                    }
+            finally {
+                if( !success && backup != null ) {
+                    //noinspection ResultOfMethodCallIgnored
+                    backup.renameTo(f);
                 }
             }
-            catch( IOException e ) {
-                throw new ControllerException("Unable to save configuration: " + e.getMessage());
-            }
+        }
+        catch( IOException e ) {
+            throw new ControllerException("Unable to save configuration: " + e.getMessage());
         }
     }
 
@@ -1004,5 +1007,30 @@ public class HomeController {
             return converted;
         }
         return ob;
+    }
+
+    static public void main(String ... args) throws Exception {
+        System.setProperty("ihaCfgRoot", "target/iha");
+        if( args.length < 1 ) {
+            System.err.println("No work");
+        }
+        String action = args[0];
+
+        if( action.equalsIgnoreCase("pair") ) {
+            String name = args[1];
+            String endpoint = args[2];
+            String pairingToken = args[3];
+            String proxyHost = null;
+            int proxyPort = 0;
+
+            if( args.length == 6 ) {
+                proxyHost = args[4];
+                proxyPort = Integer.parseInt(args[5]);
+            }
+            HomeController.getInstance().pairService(name, endpoint, proxyHost, proxyPort, pairingToken);
+        }
+        else {
+            System.err.println("No such action: " + action);
+        }
     }
 }

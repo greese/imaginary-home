@@ -201,8 +201,13 @@ public class CommandCall extends APICall {
                 object = object.getJSONObject("result");
                 boolean result = (object.has("result") && object.getBoolean("result"));
                 String errorMessage = (object.has("errorMessage") ? object.getString("errorMessage") : null);
+                ControllerRelay relay = ControllerRelay.getRelay(cmd.getRelayId());
 
                 cmd.update(PendingCommandState.EXECUTED, result, errorMessage);
+
+                if( relay != null ) {
+                    resp.setHeader("x-imaginary-has-commands", String.valueOf(PendingCommand.hasCommands(relay)));
+                }
                 resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
             }
             else {
