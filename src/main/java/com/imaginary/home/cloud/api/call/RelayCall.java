@@ -181,17 +181,14 @@ public class RelayCall extends APICall {
                     for( int i=0; i<devices.length(); i++ ) {
                         JSONObject device = devices.getJSONObject(i);
 
-                        System.out.println("Processng: " + device.toString());
-                        if( !device.has("id") || device.isNull("id") || !device.has("deviceType") || device.isNull("deviceType") || !device.has("systemId") || device.isNull("systemId") ) {
-                            System.out.println("Missing something");
+                        if( !device.has("deviceId") || device.isNull("deviceId") || !device.has("deviceType") || device.isNull("deviceType") || !device.has("systemId") || device.isNull("systemId") ) {
                             continue;
                         }
-                        String id = device.getString("id");
+                        String id = device.getString("deviceId");
                         String t = device.getString("deviceType");
                         String systemId = device.getString("systemId");
                         Device d = Device.getDevice(t, relay, systemId, id);
 
-                        System.out.println("d=" + d);
                         if( d == null ) {
                             d = Device.create(relay, t, device);
                         }
@@ -200,10 +197,8 @@ public class RelayCall extends APICall {
                         }
                         found.put(d.getDeviceId(), d);
                     }
-                    System.out.println("Found=" + found);
                     for( Device d : Device.findDevicesForRelay(relay) ) {
                         if( !found.containsKey(d.getDeviceId()) ) {
-                            System.out.println("No " + d.getDeviceId() + ", deleting");
                             d.remove();
                         }
                     }

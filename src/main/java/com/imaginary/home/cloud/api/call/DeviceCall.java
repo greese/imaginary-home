@@ -43,7 +43,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -205,6 +204,9 @@ public class DeviceCall extends APICall {
                 throw new RestException(HttpServletResponse.SC_BAD_REQUEST, RestException.INVALID_ACTION, "An invalid action was specified (or not specified) in the PUT");
             }
             if( action.equals("flipOn") || action.equals("flipOff") ) {
+                if( userId == null ) {
+                    throw new RestException(HttpServletResponse.SC_BAD_REQUEST, RestException.RELAY_NOT_ALLOWED, "Invalid relay actiojn: " + action);
+                }
                 HashMap<String,Object> json = new HashMap<String, Object>();
                 TimePeriod p = null;
 
@@ -221,7 +223,16 @@ public class DeviceCall extends APICall {
                 }
                 json.put("command", action);
                 json.put("arguments", new HashMap<String,Object>());
-                PendingCommand.queue(p, new String[] { (new JSONObject(json)).toString() }, device);
+                PendingCommand[] cmds = PendingCommand.queue(userId, p, new String[] { (new JSONObject(json)).toString() }, device);
+
+                ArrayList<Map<String,Object>> list = new ArrayList<Map<String, Object>>();
+
+                for( PendingCommand cmd : cmds ) {
+                    list.add(CommandCall.toJSON(cmd));
+                }
+                resp.setStatus(HttpServletResponse.SC_ACCEPTED);
+                resp.getWriter().println((new JSONArray(list)).toString());
+                resp.getWriter().flush();
             }
             /*
             else if( action.equalsIgnoreCase("modify") ) {

@@ -88,8 +88,8 @@ public abstract class Device implements CachedItem {
         if( json.has("model") && !json.isNull("model") ) {
             state.put("model", json.getString("model"));
         }
-        if( json.has("id") && !json.isNull("id") ) {
-            state.put("vendorDeviceId", json.getString("id"));
+        if( json.has("deviceId") && !json.isNull("deviceId") ) {
+            state.put("vendorDeviceId", json.getString("deviceId"));
         }
         if( json.has("systemId") && !json.isNull("systemId") ) {
             state.put("homeAutomationSystemId", json.getString("systemId"));

@@ -36,6 +36,7 @@ public class RestException extends Exception {
     static public final String INVALID_KEY          = "InvalidKey";
     static public final String INVALID_OPERATION    = "InvalidOperation";
     static public final String INVALID_PAIRING_CODE = "InvalidPairingCode";
+    static public final String INVALID_PARAMETER    = "InvalidParameter";
     static public final String INVALID_PUT          = "InvalidPut";
     static public final String MISSING_DATA         = "MissingData";
     public static final String MISSING_PAIRING_CODE = "MissingPairingCode";

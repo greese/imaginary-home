@@ -76,6 +76,8 @@ public class CloudTest {
     static private String pairingCode;
     static private String relayKeyId;
     static private String relayKeySecret;
+    static private String testCommandId;
+    static private String testDeviceId;
     static private String token;
 
     private String cloudAPI;
@@ -140,8 +142,17 @@ public class CloudTest {
         if( name.getMethodName().equals("pushState") && token == null ) {
             setupToken();
         }
-        if( name.getMethodName().equals("listDevices") ) {
+        if( name.getMethodName().equals("listDevices") && testDeviceId == null ) {
             setupDevices();
+        }
+        if( name.getMethodName().equals("flipOn") && testDeviceId == null ) {
+            setupDevices();
+        }
+        if( name.getMethodName().equals("listCommands") && testCommandId == null ) {
+            setupCommand();
+        }
+        if( name.getMethodName().equals("fetchWaitingCommands") && testCommandId == null ) {
+            setupCommand();
         }
     }
 
@@ -383,7 +394,7 @@ public class CloudTest {
             HashMap<String,Object> device = new HashMap<String, Object>();
 
             device.put("systemId", "2");
-            device.put("id", "999");
+            device.put("deviceId", "999");
             device.put("model", "XYZ900");
             device.put("on", false);
             device.put("deviceType", "powered");
@@ -419,8 +430,91 @@ public class CloudTest {
             e.printStackTrace();
             throw new CommunicationException(e);
         }
+
         if( status.getStatusCode() != HttpServletResponse.SC_NO_CONTENT ) {
             Assert.fail("Failed to update state for relay  (" + status.getStatusCode() + ": " + EntityUtils.toString(response.getEntity()));
+        }
+
+        HttpGet get = new HttpGet(cloudAPI + "/device?locationId=" + URLEncoder.encode(locationId, "utf-8"));
+
+        timestamp = System.currentTimeMillis();
+
+        get.addHeader("Content-Type", "application/json");
+        get.addHeader("x-imaginary-version", VERSION);
+        get.addHeader("x-imaginary-timestamp", String.valueOf(timestamp));
+        get.addHeader("x-imaginary-api-key", apiKeyId);
+        get.addHeader("x-imaginary-signature", CloudService.sign(apiKeySecret.getBytes("utf-8"), "get:/device:" + apiKeyId + ":" + timestamp + ":" + VERSION));
+
+        try {
+            response = client.execute(get);
+            status = response.getStatusLine();
+        }
+        catch( IOException e ) {
+            e.printStackTrace();
+            throw new CommunicationException(e);
+        }
+        if( status.getStatusCode() == HttpServletResponse.SC_OK ) {
+            String json = EntityUtils.toString(response.getEntity());
+            JSONArray list = new JSONArray(json);
+
+            for( int i=0; i<list.length(); i++ ) {
+                JSONObject device = list.getJSONObject(i);
+
+                out("device -> " + device.toString());
+                if( device.has("systemId") && device.getString("systemId").equals("2") ) {
+                    if( device.has("vendorDeviceId") && device.getString("vendorDeviceId").equals("999") ) {
+                        testDeviceId = device.getString("deviceId");
+                        break;
+                    }
+                }
+            }
+        }
+        else {
+            Assert.fail("Failed to list devices  (" + status.getStatusCode() + ": " + EntityUtils.toString(response.getEntity()));
+        }
+        Assert.assertNotNull("Test device could not be found during setup", testDeviceId);
+    }
+
+    private void setupCommand() throws Exception {
+        HashMap<String,Object> action = new HashMap<String, Object>();
+
+        action.put("action", testCommandId == null ? "flipOn" : "flipOff");
+        action.put("arguments", new ArrayList<Map<String,Object>>());
+
+        HttpClient client = getClient();
+
+        HttpPut method = new HttpPut(cloudAPI + "/device/" + testDeviceId);
+        long timestamp = System.currentTimeMillis();
+
+        method.addHeader("Content-Type", "application/json");
+        method.addHeader("x-imaginary-version", VERSION);
+        method.addHeader("x-imaginary-timestamp", String.valueOf(timestamp));
+        method.addHeader("x-imaginary-api-key", apiKeyId);
+        method.addHeader("x-imaginary-signature", CloudService.sign(apiKeySecret.getBytes("utf-8"), "put:/device/" + testDeviceId + ":" + apiKeyId + ":" + timestamp + ":" + VERSION));
+
+        //noinspection deprecation
+        method.setEntity(new StringEntity((new JSONObject(action)).toString(), "application/json", "UTF-8"));
+
+        HttpResponse response;
+        StatusLine status;
+
+        try {
+            response = client.execute(method);
+            status = response.getStatusLine();
+        }
+        catch( IOException e ) {
+            e.printStackTrace();
+            throw new CommunicationException(e);
+        }
+        if( status.getStatusCode() == HttpServletResponse.SC_ACCEPTED ) {
+            String json = EntityUtils.toString(response.getEntity());
+            JSONArray list = new JSONArray(json);
+            JSONObject cmd = list.getJSONObject(0);
+
+            testCommandId = cmd.getString("commandId");
+        }
+        else {
+            Assert.fail("Failed to setup test command (" + status.getStatusCode() + ": " + EntityUtils.toString(response.getEntity()));
         }
     }
 
@@ -715,7 +809,7 @@ public class CloudTest {
             HashMap<String,Object> device = new HashMap<String, Object>();
 
             device.put("systemId", "1");
-            device.put("id", "1");
+            device.put("deviceId", "1");
             device.put("model", "A1234");
             device.put("on", true);
             device.put("deviceType", "light");
@@ -734,7 +828,7 @@ public class CloudTest {
 
             device = new HashMap<String, Object>();
             device.put("systemId", "2");
-            device.put("id", "1");
+            device.put("deviceId", "1");
             device.put("model", "XYZ999");
             device.put("on", false);
             device.put("deviceType", "powered");
@@ -742,6 +836,15 @@ public class CloudTest {
             device.put("description", "A test thing that turns off and on");
             devices.add(device);
 
+
+            device.put("systemId", "2");
+            device.put("deviceId", "999");
+            device.put("model", "XYZ900");
+            device.put("on", false);
+            device.put("deviceType", "powered");
+            device.put("name", "Manipulation Test");
+            device.put("description", "A test thing that turns off and on and will be manipulated by tests");
+            devices.add(device);
         }
         relay.put("devices", devices);
         action.put("relay", relay);
@@ -829,9 +932,156 @@ public class CloudTest {
             }
             out("MATCH: " + match);
             Assert.assertNotNull("Unable to find the test device among the returned devices", match);
+            if( testDeviceId == null ) {
+                testDeviceId = match;
+            }
         }
         else {
             Assert.fail("Failed to load devices (" + status.getStatusCode() + ": " + EntityUtils.toString(response.getEntity()));
+        }
+    }
+
+    @Test
+    public void flipOn() throws Exception {
+        HashMap<String,Object> action = new HashMap<String, Object>();
+
+        action.put("action", testCommandId == null ? "flipOn" : "flipOff");
+        action.put("arguments", new ArrayList<Map<String,Object>>());
+
+        HttpClient client = getClient();
+
+        HttpPut method = new HttpPut(cloudAPI + "/device/" + testDeviceId);
+        long timestamp = System.currentTimeMillis();
+
+        method.addHeader("Content-Type", "application/json");
+        method.addHeader("x-imaginary-version", VERSION);
+        method.addHeader("x-imaginary-timestamp", String.valueOf(timestamp));
+        method.addHeader("x-imaginary-api-key", apiKeyId);
+        method.addHeader("x-imaginary-signature", CloudService.sign(apiKeySecret.getBytes("utf-8"), "put:/device/" + testDeviceId + ":" + apiKeyId + ":" + timestamp + ":" + VERSION));
+
+        //noinspection deprecation
+        method.setEntity(new StringEntity((new JSONObject(action)).toString(), "application/json", "UTF-8"));
+
+        HttpResponse response;
+        StatusLine status;
+
+        try {
+            response = client.execute(method);
+            status = response.getStatusLine();
+        }
+        catch( IOException e ) {
+            e.printStackTrace();
+            throw new CommunicationException(e);
+        }
+        if( status.getStatusCode() == HttpServletResponse.SC_ACCEPTED ) {
+            String json = EntityUtils.toString(response.getEntity());
+            JSONArray cmds = new JSONArray(json);
+            JSONObject cmd = cmds.getJSONObject(0);
+
+            String commandId = cmd.getString("commandId");
+
+            out("Total: " + cmds.length());
+            out("ID:    " + commandId);
+            out("DATA:  " + json);
+            Assert.assertNotNull("No commandId was present", commandId);
+            if( testCommandId == null ) {
+                testCommandId = commandId;
+            }
+        }
+        else {
+            Assert.fail("Failed to send flipOn command  (" + status.getStatusCode() + ": " + EntityUtils.toString(response.getEntity()));
+        }
+    }
+
+    @Test
+    public void listCommands() throws Exception {
+        HttpClient client = getClient();
+
+        HttpGet method = new HttpGet(cloudAPI + "/command?locationId=" + URLEncoder.encode(locationId, "utf-8"));
+
+        long timestamp = System.currentTimeMillis();
+
+        method.addHeader("Content-Type", "application/json");
+        method.addHeader("x-imaginary-version", VERSION);
+        method.addHeader("x-imaginary-timestamp", String.valueOf(timestamp));
+        method.addHeader("x-imaginary-api-key", apiKeyId);
+        method.addHeader("x-imaginary-signature", CloudService.sign(apiKeySecret.getBytes("utf-8"), "get:/command:" + apiKeyId + ":" + timestamp + ":" + VERSION));
+
+        HttpResponse response;
+        StatusLine status;
+
+        try {
+            response = client.execute(method);
+            status = response.getStatusLine();
+        }
+        catch( IOException e ) {
+            e.printStackTrace();
+            throw new CommunicationException(e);
+        }
+        if( status.getStatusCode() == HttpServletResponse.SC_OK ) {
+            String json = EntityUtils.toString(response.getEntity());
+            JSONArray list = new JSONArray(json);
+            String match = null;
+
+            for( int i=0; i<list.length(); i++ ) {
+                JSONObject cmd = list.getJSONObject(i);
+
+                out("command -> " + cmd.toString());
+                if( testCommandId.equals(cmd.getString("commandId")) ) {
+                    match = testCommandId;
+                }
+            }
+            out("MATCH: " + match);
+            Assert.assertNotNull("Unable to find the test command among the returned commands", match);
+        }
+        else {
+            Assert.fail("Failed to load commands (" + status.getStatusCode() + ": " + EntityUtils.toString(response.getEntity()));
+        }
+    }
+
+    @Test
+    public void fetchWaitingCommands() throws Exception {
+        HttpClient client = getClient();
+
+        HttpGet method = new HttpGet(cloudAPI + "/command");
+
+        long timestamp = System.currentTimeMillis();
+
+        method.addHeader("Content-Type", "application/json");
+        method.addHeader("x-imaginary-version", VERSION);
+        method.addHeader("x-imaginary-timestamp", String.valueOf(timestamp));
+        method.addHeader("x-imaginary-api-key", relayKeyId);
+        method.addHeader("x-imaginary-signature", CloudService.sign(relayKeySecret.getBytes("utf-8"), "get:/command:" + relayKeyId + ":" + token + ":" + timestamp + ":" + VERSION));
+
+        HttpResponse response;
+        StatusLine status;
+
+        try {
+            response = client.execute(method);
+            status = response.getStatusLine();
+        }
+        catch( IOException e ) {
+            e.printStackTrace();
+            throw new CommunicationException(e);
+        }
+        if( status.getStatusCode() == HttpServletResponse.SC_OK ) {
+            String json = EntityUtils.toString(response.getEntity());
+            JSONArray list = new JSONArray(json);
+            String match = null;
+
+            for( int i=0; i<list.length(); i++ ) {
+                JSONObject cmd = list.getJSONObject(i);
+
+                out("command -> " + cmd.toString());
+                if( testCommandId.equals(cmd.getString("commandId")) ) {
+                    match = testCommandId;
+                }
+            }
+            out("MATCH: " + match);
+            Assert.assertNotNull("Unable to find the test command among the returned commands", match);
+        }
+        else {
+            Assert.fail("Failed to load commands (" + status.getStatusCode() + ": " + EntityUtils.toString(response.getEntity()));
         }
     }
 

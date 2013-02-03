@@ -60,7 +60,6 @@ public class Light extends PoweredDevice {
     }
 
     static @Nonnull Light createLight(@Nonnull ControllerRelay relay, @Nonnull JSONObject json) throws JSONException, PersistenceException {
-        System.out.println("Creating light for " + relay.getControllerRelayId());
         if( logger.isInfoEnabled() ) {
             logger.info("Creating light for " + relay.getControllerRelayId());
         }
@@ -80,7 +79,6 @@ public class Light extends PoweredDevice {
             if( logger.isDebugEnabled() ) {
                 logger.debug("newLight=" + light);
             }
-            System.out.println("result=" + light);
             return light;
         }
         finally {

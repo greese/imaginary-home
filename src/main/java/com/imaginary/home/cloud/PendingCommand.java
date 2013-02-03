@@ -39,7 +39,11 @@ import java.util.TreeSet;
 import java.util.UUID;
 
 /**
- * [Class Documentation]
+ * A command pending against devices owned by a specific relay. Commands are issued by users remotely using their
+ * user API keys and queued into the cloud service. A controller relay then fetches commands queued for it and
+ * executes them. The user can, at any point, check the state of a given command. It should be noted that all
+ * user-submitted commands are really "fire and forget". There is no guarantee they will execute or succeed if they
+ * are executed.
  * <p>Created by George Reese: 1/26/13 9:30 PM</p>
  * @author George Reese
  */
@@ -58,6 +62,10 @@ public class PendingCommand implements CachedItem {
         return getCache().get(id);
     }
 
+    static public @Nonnull Collection<PendingCommand> getCommands(@Nonnull ControllerRelay forRelay) throws PersistenceException {
+        return getCache().find(new SearchTerm("relayId", forRelay.getControllerRelayId()));
+    }
+
     static public @Nonnull Collection<PendingCommand> getCommandsToSend(@Nonnull ControllerRelay forRelay, boolean markSent) throws PersistenceException {
         Collection<PendingCommand> list = getCache().find(new SearchTerm("state", PendingCommandState.WAITING), new SearchTerm("relayId", forRelay.getControllerRelayId()));
 
@@ -71,7 +79,7 @@ public class PendingCommand implements CachedItem {
 
                     memento.save(state);
                     state.put("state", PendingCommandState.SENT);
-                    state.put("sentAt", System.currentTimeMillis());
+                    state.put("sentTimestamp", System.currentTimeMillis());
                     state = memento.getState();
 
                     Transaction xaction = Transaction.getInstance();
@@ -98,7 +106,7 @@ public class PendingCommand implements CachedItem {
         return getCache().find(new SearchTerm("state", PendingCommandState.WAITING), new SearchTerm("relayId", relay.getControllerRelayId())).iterator().hasNext();
     }
 
-    static public @Nonnull PendingCommand[] queue(@Nonnull TimePeriod<?> timeout, @Nonnull String[] commandsAsJSON, @Nonnull Device ... devices) throws PersistenceException {
+    static public @Nonnull PendingCommand[] queue(@Nonnull String userId, @Nonnull TimePeriod<?> timeout, @Nonnull String[] commandsAsJSON, @Nonnull Device ... devices) throws PersistenceException {
         if( devices.length < 1 ) {
             throw new PersistenceException("No devices specified");
         }
@@ -148,7 +156,8 @@ public class PendingCommand implements CachedItem {
                 state.put("relayId", relayId);
                 state.put("state", PendingCommandState.WAITING);
                 state.put("timeout", timeoutMillis);
-                state.put("sentAt", 0);
+                state.put("issuedTimestamp", System.currentTimeMillis());
+                state.put("issuedBy", userId);
 
                 Transaction xaction = Transaction.getInstance();
 
@@ -165,16 +174,20 @@ public class PendingCommand implements CachedItem {
     }
 
     private String              command;
+    private Long                completionTimestamp;
     @Index(type=IndexType.SECONDARY)
     private String[]            deviceIds;
     @Index(type=IndexType.SECONDARY)
     private String              groupId;
+    @Index(type=IndexType.SECONDARY)
+    private String              issuedBy;
+    private long                issuedTimestamp;
     @Index(type= IndexType.PRIMARY)
     private String              pendingCommandId;
     @Index(type=IndexType.FOREIGN, identifies= ControllerRelay.class)
     private String              relayId;
-    private long                sentAt;
-    @Index(type=IndexType.SECONDARY, multi={"relayId"})
+    private Long                sentTimestamp;
+    @Index(type=IndexType.SECONDARY, multi={"relayId"}, cascade = true)
     private PendingCommandState state;
     private long                timeout;
 
@@ -182,6 +195,10 @@ public class PendingCommand implements CachedItem {
 
     public @Nonnull String getCommand() {
         return command;
+    }
+
+    public @Nullable Long getCompletionTimestamp() {
+        return completionTimestamp;
     }
 
     public @Nonnull String[] getDeviceIds() {
@@ -192,6 +209,14 @@ public class PendingCommand implements CachedItem {
         return groupId;
     }
 
+    public @Nonnull String getIssuedBy() {
+        return issuedBy;
+    }
+
+    public @Nonnegative long getIssuedTimestamp() {
+        return issuedTimestamp;
+    }
+
     public @Nonnull String getPendingCommandId() {
         return pendingCommandId;
     }
@@ -200,8 +225,12 @@ public class PendingCommand implements CachedItem {
         return relayId;
     }
 
-    public @Nonnegative long getSentAt() {
-        return sentAt;
+    public @Nullable Long getSentTimestamp() {
+        return sentTimestamp;
+    }
+
+    public @Nonnull PendingCommandState getState() {
+        return state;
     }
 
     public @Nonnegative long getTimeout() {
