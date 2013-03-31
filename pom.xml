@@ -3,7 +3,7 @@
 
     <groupId>com.imaginary</groupId>
     <artifactId>imaginary-home</artifactId>
-    <version>2013.01-SNAPSHOT</version>
+    <version>2013.01</version>
 
     <name>Imaginary Hue Control</name>
     <description>Java binding for controlling the Philips Hue light bulbs.</description>
