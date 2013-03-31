@@ -172,6 +172,9 @@
                             <value>${ihaCfgRoot}</value>
                         </property>
                     </systemProperties>
+                    <excludes>
+                        <exclude>**/**Test.java</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
             <plugin>

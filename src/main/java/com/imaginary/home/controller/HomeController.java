@@ -1010,7 +1010,6 @@ public class HomeController {
     }
 
     static public void main(String ... args) throws Exception {
-        System.setProperty("ihaCfgRoot", "target/iha");
         if( args.length < 1 ) {
             System.err.println("No work");
         }
@@ -1028,6 +1027,12 @@ public class HomeController {
                 proxyPort = Integer.parseInt(args[5]);
             }
             HomeController.getInstance().pairService(name, endpoint, proxyHost, proxyPort, pairingToken);
+        }
+        else if( action.equalsIgnoreCase("run") ) {
+            while( true ) {
+                try { Thread.sleep(60000L); }
+                catch( InterruptedException e ) { }
+            }
         }
         else {
             System.err.println("No such action: " + action);
