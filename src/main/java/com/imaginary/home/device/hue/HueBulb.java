@@ -114,7 +114,11 @@ public class HueBulb implements Light {
                 newColor = newColor.convertToCIEXYZ();
                 components = newColor.getComponents();
             }
-            state.put("xy", new float[] { components[0], components[1] });
+            float x = components[0] / (components[0] + components[1] + components[2]); 
+            float y = components[1] / (components[0] + components[1] + components[2]);
+            
+            
+            state.put("xy", new float[] { x, y });
         }
         HueMethod method = new HueMethod(hue);
 
