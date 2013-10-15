@@ -162,21 +162,16 @@ public class Color {
     public @Nonnull Color convertToCIEXYZ() {
         switch( colorMode ) {
             case RGB:
-                ColorSpace cs = ColorSpace.getInstance(ColorSpace.CS_sRGB);
-                
-                // Source: 
+                // More information: 
                 // https://github.com/PhilipsHue/PhilipsHueSDKiOS/blob/master/ApplicationDesignNotes/RGB%20to%20xy%20Color%20conversion.md
                 float red = components[0]/100;
                 float green = components[1]/100;
-                float blue = components[2]/100;
-                
+                float blue = components[2]/100;                
                 float X = red * 0.649926f + green * 0.103455f + blue * 0.197109f; 
                 float Y = red * 0.234327f + green * 0.743075f + blue * 0.022598f;
                 float Z = red * 0.0000000f + green * 0.053077f + blue * 1.035763f;
-
-                return new Color(ColorMode.CIEXYZ, X,Y,Z);
                 
-                //return new Color(ColorMode.CIEXYZ, cs.toCIEXYZ(new float[] { (components[0]*255)/100, (components[1]*255)/100, (components[2]*255)/100 }));                
+                return new Color(ColorMode.CIEXYZ, X,Y,Z);                
             case HSV:
                 return convertToRGB().convertTo(ColorMode.CIEXYZ);
             case CT:

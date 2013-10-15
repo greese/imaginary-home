@@ -113,11 +113,12 @@ public class HueBulb implements Light {
             if( !newColor.getColorMode().equals(ColorMode.CIEXYZ) ) {
                 newColor = newColor.convertToCIEXYZ();
                 components = newColor.getComponents();
-            }
+            }            
+            // More information: 
+            // https://github.com/PhilipsHue/PhilipsHueSDKiOS/blob/master/ApplicationDesignNotes/RGB%20to%20xy%20Color%20conversion.md
             float x = components[0] / (components[0] + components[1] + components[2]); 
             float y = components[1] / (components[0] + components[1] + components[2]);
-            
-            
+                        
             state.put("xy", new float[] { x, y });
         }
         HueMethod method = new HueMethod(hue);
