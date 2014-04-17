@@ -93,7 +93,6 @@ public class CloudService {
     }
 
     static CloudService pair(@Nonnull String name, @Nonnull String endpoint, @Nullable String proxyHost, int proxyPort, @Nonnull String pairingToken) throws CommunicationException, ControllerException {
-        HttpClient client = getClient(endpoint, proxyHost, proxyPort);
         HttpPost method = new HttpPost(endpoint + "/relay");
 
         method.addHeader("Content-Type", "application/json");
@@ -113,14 +112,21 @@ public class CloudService {
         }
         HttpResponse response;
         StatusLine status;
+        HttpClient client = null;
 
         try {
+            client = getClient(endpoint, proxyHost, proxyPort);
             response = client.execute(method);
             status = response.getStatusLine();
         }
         catch( IOException e ) {
             e.printStackTrace();
             throw new CommunicationException(e);
+        }
+        finally {
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
         if( status.getStatusCode() == HttpServletResponse.SC_CREATED ) {
             HttpEntity entity = response.getEntity();
@@ -200,7 +206,6 @@ public class CloudService {
     }
 
     private void authenticate() throws ControllerException, CommunicationException {
-        HttpClient client = getClient(endpoint, proxyHost, proxyPort);
         HttpPut method = new HttpPut(endpoint + "/token");
         long timestamp = System.currentTimeMillis();
 
@@ -218,12 +223,19 @@ public class CloudService {
             throw new ControllerException(e);
         }
         HttpResponse response;
+        HttpClient client = null;
 
         try {
+            client = getClient(endpoint, proxyHost, proxyPort);
             response = client.execute(method);
         }
         catch( IOException e ) {
             throw new CommunicationException(e);
+        }
+        finally {
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
         if( response.getStatusLine().getStatusCode() == HttpServletResponse.SC_CREATED ) {
             HttpEntity entity = response.getEntity();
@@ -262,7 +274,6 @@ public class CloudService {
         boolean hasCommands;
 
         do {
-            HttpClient client = getClient(endpoint, proxyHost, proxyPort);
             HttpPut method = new HttpPut(endpoint + "/command");
             long timestamp = System.currentTimeMillis();
 
@@ -285,13 +296,20 @@ public class CloudService {
             HttpResponse response;
             StatusLine status;
 
+            HttpClient client = null;
             try {
+                client = getClient(endpoint, proxyHost, proxyPort);
                 response = client.execute(method);
                 status = response.getStatusLine();
             }
             catch( IOException e ) {
                 e.printStackTrace();
                 throw new CommunicationException(e);
+            }
+            finally {
+                if (client != null) {
+                    client.getConnectionManager().shutdown();
+                }
             }
             if( status.getStatusCode() != HttpServletResponse.SC_OK ) {
                 parseError(response); // this will throw an exception
@@ -491,7 +509,6 @@ public class CloudService {
     }
 
     public boolean hasCommands() throws CommunicationException, ControllerException {
-        HttpClient client = getClient(endpoint, proxyHost, proxyPort);
         HttpHead method = new HttpHead(endpoint + "/command");
         long timestamp = System.currentTimeMillis();
 
@@ -514,14 +531,21 @@ public class CloudService {
 
         HttpResponse response;
         StatusLine status;
+        HttpClient client = null;
 
         try {
+            client = getClient(endpoint, proxyHost, proxyPort);
             response = client.execute(method);
             status = response.getStatusLine();
         }
         catch( IOException e ) {
             e.printStackTrace();
             throw new CommunicationException(e);
+        }
+        finally {
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
         if( status.getStatusCode() != HttpServletResponse.SC_NO_CONTENT ) {
             parseError(response); // this will throw an exception
@@ -538,7 +562,6 @@ public class CloudService {
     }
 
     public boolean postState() throws CommunicationException, ControllerException {
-        HttpClient client = getClient(endpoint, proxyHost, proxyPort);
         HttpPut method = new HttpPut(endpoint + "/relay/" + serviceId);
         long timestamp = System.currentTimeMillis();
 
@@ -579,14 +602,21 @@ public class CloudService {
         }
         HttpResponse response;
         StatusLine status;
+        HttpClient client = null;
 
         try {
+            client = getClient(endpoint, proxyHost, proxyPort);
             response = client.execute(method);
             status = response.getStatusLine();
         }
         catch( IOException e ) {
             e.printStackTrace();
             throw new CommunicationException(e);
+        }
+        finally {
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
         if( status.getStatusCode() != HttpServletResponse.SC_NO_CONTENT ) {
             parseError(response); // this will throw an exception
@@ -598,7 +628,6 @@ public class CloudService {
     }
 
     public boolean postResult(@Nonnull String cmdId, boolean stateChanged, @Nullable Throwable exception) throws CommunicationException, ControllerException {
-        HttpClient client = getClient(endpoint, proxyHost, proxyPort);
         HttpPut method = new HttpPut(endpoint + "/command/" + cmdId);
         long timestamp = System.currentTimeMillis();
 
@@ -637,14 +666,21 @@ public class CloudService {
         }
         HttpResponse response;
         StatusLine status;
+        HttpClient client = null;
 
         try {
+            client = getClient(endpoint, proxyHost, proxyPort);
             response = client.execute(method);
             status = response.getStatusLine();
         }
         catch( IOException e ) {
             e.printStackTrace();
             throw new CommunicationException(e);
+        }
+        finally {
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
         if( status.getStatusCode() != HttpServletResponse.SC_NO_CONTENT ) {
             parseError(response); // this will throw an exception

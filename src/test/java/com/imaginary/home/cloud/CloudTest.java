@@ -165,7 +165,6 @@ public class CloudTest {
         user.put("email", "test" + key + "@example.com");
         user.put("password", "ABC" + random.nextInt(1000000));
 
-        HttpClient client = getClient();
 
         HttpPost method = new HttpPost(cloudAPI + "/user");
         long timestamp = System.currentTimeMillis();
@@ -179,14 +178,21 @@ public class CloudTest {
 
         HttpResponse response;
         StatusLine status;
+        HttpClient client = null;
 
         try {
+            client = getClient();
             response = client.execute(method);
             status = response.getStatusLine();
         }
         catch( IOException e ) {
             e.printStackTrace();
             throw new CommunicationException(e);
+        }
+        finally {
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
         if( status.getStatusCode() == HttpServletResponse.SC_CREATED ) {
             String json = EntityUtils.toString(response.getEntity());
@@ -259,7 +265,6 @@ public class CloudTest {
 
         action.put("action", "initializePairing");
 
-        HttpClient client = getClient();
 
         HttpPut method = new HttpPut(cloudAPI + "/location/" + locationId);
         long timestamp = System.currentTimeMillis();
@@ -275,14 +280,21 @@ public class CloudTest {
 
         HttpResponse response;
         StatusLine status;
+        HttpClient client = null;
 
         try {
+            client = getClient();
             response = client.execute(method);
             status = response.getStatusLine();
         }
         catch( IOException e ) {
             e.printStackTrace();
             throw new CommunicationException(e);
+        }
+        finally {
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
         if( status.getStatusCode() == HttpServletResponse.SC_OK ) {
             String json = EntityUtils.toString(response.getEntity());
@@ -305,7 +317,6 @@ public class CloudTest {
         map.put("pairingCode", pairingCode);
         map.put("name", "Test Controller " + key);
 
-        HttpClient client = getClient();
 
         HttpPost method = new HttpPost(cloudAPI + "/relay");
         long timestamp = System.currentTimeMillis();
@@ -319,14 +330,21 @@ public class CloudTest {
 
         HttpResponse response;
         StatusLine status;
+        HttpClient client = null;
 
         try {
+            client = getClient();
             response = client.execute(method);
             status = response.getStatusLine();
         }
         catch( IOException e ) {
             e.printStackTrace();
             throw new CommunicationException(e);
+        }
+        finally {
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
         if( status.getStatusCode() == HttpServletResponse.SC_CREATED ) {
             String json = EntityUtils.toString(response.getEntity());
@@ -345,7 +363,6 @@ public class CloudTest {
         if( relayKeyId == null ) {
             setupRelay();
         }
-        HttpClient client = getClient();
 
         HttpPost method = new HttpPost(cloudAPI + "/token");
         long timestamp = System.currentTimeMillis();
@@ -358,14 +375,21 @@ public class CloudTest {
 
         HttpResponse response;
         StatusLine status;
+        HttpClient client = null;
 
         try {
+            client = getClient();
             response = client.execute(method);
             status = response.getStatusLine();
         }
         catch( IOException e ) {
             e.printStackTrace();
             throw new CommunicationException(e);
+        }
+        finally {
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
         if( status.getStatusCode() == HttpServletResponse.SC_CREATED ) {
             String json = EntityUtils.toString(response.getEntity());
@@ -405,8 +429,6 @@ public class CloudTest {
         relay.put("devices", devices);
         action.put("relay", relay);
 
-        HttpClient client = getClient();
-
         HttpPut method = new HttpPut(cloudAPI + "/relay/" + relayKeyId);
         long timestamp = System.currentTimeMillis();
 
@@ -421,14 +443,21 @@ public class CloudTest {
 
         HttpResponse response;
         StatusLine status;
+        HttpClient client = null;
 
         try {
+            client = getClient();
             response = client.execute(method);
             status = response.getStatusLine();
         }
         catch( IOException e ) {
             e.printStackTrace();
             throw new CommunicationException(e);
+        }
+        finally {
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
 
         if( status.getStatusCode() != HttpServletResponse.SC_NO_CONTENT ) {
@@ -481,8 +510,6 @@ public class CloudTest {
         action.put("action", testCommandId == null ? "flipOn" : "flipOff");
         action.put("arguments", new ArrayList<Map<String,Object>>());
 
-        HttpClient client = getClient();
-
         HttpPut method = new HttpPut(cloudAPI + "/device/" + testDeviceId);
         long timestamp = System.currentTimeMillis();
 
@@ -497,14 +524,21 @@ public class CloudTest {
 
         HttpResponse response;
         StatusLine status;
+        HttpClient client = null;
 
         try {
+            client = getClient();
             response = client.execute(method);
             status = response.getStatusLine();
         }
         catch( IOException e ) {
             e.printStackTrace();
             throw new CommunicationException(e);
+        }
+        finally {
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
         if( status.getStatusCode() == HttpServletResponse.SC_ACCEPTED ) {
             String json = EntityUtils.toString(response.getEntity());
@@ -538,8 +572,6 @@ public class CloudTest {
         user.put("email", "test" + key + "@example.com");
         user.put("password", "ABC" + random.nextInt(1000000));
 
-        HttpClient client = getClient();
-
         HttpPost method = new HttpPost(cloudAPI + "/user");
         long timestamp = System.currentTimeMillis();
 
@@ -552,14 +584,21 @@ public class CloudTest {
 
         HttpResponse response;
         StatusLine status;
+        HttpClient client = null;
 
         try {
+            client = getClient();
             response = client.execute(method);
             status = response.getStatusLine();
         }
         catch( IOException e ) {
             e.printStackTrace();
             throw new CommunicationException(e);
+        }
+        finally {
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
         if( status.getStatusCode() == HttpServletResponse.SC_CREATED ) {
             String json = EntityUtils.toString(response.getEntity());
@@ -609,8 +648,6 @@ public class CloudTest {
         user.put("description", "Integration test location");
         user.put("timeZone", TimeZone.getDefault().getID());
 
-        HttpClient client = getClient();
-
         HttpPost method = new HttpPost(cloudAPI + "/location");
         long timestamp = System.currentTimeMillis();
 
@@ -625,14 +662,21 @@ public class CloudTest {
 
         HttpResponse response;
         StatusLine status;
+        HttpClient client = null;
 
         try {
+            client = getClient();
             response = client.execute(method);
             status = response.getStatusLine();
         }
         catch( IOException e ) {
             e.printStackTrace();
             throw new CommunicationException(e);
+        }
+        finally {
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
         if( status.getStatusCode() == HttpServletResponse.SC_CREATED ) {
             String json = EntityUtils.toString(response.getEntity());
@@ -658,8 +702,6 @@ public class CloudTest {
 
         action.put("action", "initializePairing");
 
-        HttpClient client = getClient();
-
         HttpPut method = new HttpPut(cloudAPI + "/location/" + locationId);
         long timestamp = System.currentTimeMillis();
 
@@ -674,14 +716,21 @@ public class CloudTest {
 
         HttpResponse response;
         StatusLine status;
+        HttpClient client = null;
 
         try {
+            client = getClient();
             response = client.execute(method);
             status = response.getStatusLine();
         }
         catch( IOException e ) {
             e.printStackTrace();
             throw new CommunicationException(e);
+        }
+        finally {
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
         if( status.getStatusCode() == HttpServletResponse.SC_OK ) {
             String json = EntityUtils.toString(response.getEntity());
@@ -709,8 +758,6 @@ public class CloudTest {
         map.put("pairingCode", pairingCode);
         map.put("name", "Test Controller " + key);
 
-        HttpClient client = getClient();
-
         HttpPost method = new HttpPost(cloudAPI + "/relay");
         long timestamp = System.currentTimeMillis();
 
@@ -723,14 +770,21 @@ public class CloudTest {
 
         HttpResponse response;
         StatusLine status;
+        HttpClient client = null;
 
         try {
+            client = getClient();
             response = client.execute(method);
             status = response.getStatusLine();
         }
         catch( IOException e ) {
             e.printStackTrace();
             throw new CommunicationException(e);
+        }
+        finally {
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
         if( status.getStatusCode() == HttpServletResponse.SC_CREATED ) {
             String json = EntityUtils.toString(response.getEntity());
@@ -758,7 +812,6 @@ public class CloudTest {
 
     @Test
     public void token() throws Exception {
-        HttpClient client = getClient();
 
         HttpPost method = new HttpPost(cloudAPI + "/token");
         long timestamp = System.currentTimeMillis();
@@ -771,14 +824,21 @@ public class CloudTest {
 
         HttpResponse response;
         StatusLine status;
+        HttpClient client = null;
 
         try {
+            client = getClient();
             response = client.execute(method);
             status = response.getStatusLine();
         }
         catch( IOException e ) {
             e.printStackTrace();
             throw new CommunicationException(e);
+        }
+        finally {
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
         if( status.getStatusCode() == HttpServletResponse.SC_CREATED ) {
             String json = EntityUtils.toString(response.getEntity());
@@ -849,8 +909,6 @@ public class CloudTest {
         relay.put("devices", devices);
         action.put("relay", relay);
 
-        HttpClient client = getClient();
-
         HttpPut method = new HttpPut(cloudAPI + "/relay/" + relayKeyId);
         long timestamp = System.currentTimeMillis();
 
@@ -865,14 +923,21 @@ public class CloudTest {
 
         HttpResponse response;
         StatusLine status;
+        HttpClient client = null;
 
         try {
+            client = getClient();
             response = client.execute(method);
             status = response.getStatusLine();
         }
         catch( IOException e ) {
             e.printStackTrace();
             throw new CommunicationException(e);
+        }
+        finally {
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
         if( status.getStatusCode() == HttpServletResponse.SC_NO_CONTENT ) {
             Header h = response.getFirstHeader("x-imaginary-has-commands");
@@ -892,8 +957,6 @@ public class CloudTest {
 
     @Test
     public void listDevices() throws Exception {
-        HttpClient client = getClient();
-
         HttpGet method = new HttpGet(cloudAPI + "/device?locationId=" + URLEncoder.encode(locationId, "utf-8"));
 
         long timestamp = System.currentTimeMillis();
@@ -906,14 +969,21 @@ public class CloudTest {
 
         HttpResponse response;
         StatusLine status;
+        HttpClient client = null;
 
         try {
+            client = getClient();
             response = client.execute(method);
             status = response.getStatusLine();
         }
         catch( IOException e ) {
             e.printStackTrace();
             throw new CommunicationException(e);
+        }
+        finally {
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
         if( status.getStatusCode() == HttpServletResponse.SC_OK ) {
             String json = EntityUtils.toString(response.getEntity());
@@ -948,8 +1018,6 @@ public class CloudTest {
         action.put("action", testCommandId == null ? "flipOn" : "flipOff");
         action.put("arguments", new ArrayList<Map<String,Object>>());
 
-        HttpClient client = getClient();
-
         HttpPut method = new HttpPut(cloudAPI + "/device/" + testDeviceId);
         long timestamp = System.currentTimeMillis();
 
@@ -964,14 +1032,21 @@ public class CloudTest {
 
         HttpResponse response;
         StatusLine status;
+        HttpClient client = null;
 
         try {
+            client = getClient();
             response = client.execute(method);
             status = response.getStatusLine();
         }
         catch( IOException e ) {
             e.printStackTrace();
             throw new CommunicationException(e);
+        }
+        finally {
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
         if( status.getStatusCode() == HttpServletResponse.SC_ACCEPTED ) {
             String json = EntityUtils.toString(response.getEntity());
@@ -995,8 +1070,6 @@ public class CloudTest {
 
     @Test
     public void listCommands() throws Exception {
-        HttpClient client = getClient();
-
         HttpGet method = new HttpGet(cloudAPI + "/command?locationId=" + URLEncoder.encode(locationId, "utf-8"));
 
         long timestamp = System.currentTimeMillis();
@@ -1009,14 +1082,21 @@ public class CloudTest {
 
         HttpResponse response;
         StatusLine status;
+        HttpClient client = null;
 
         try {
+            client = getClient();
             response = client.execute(method);
             status = response.getStatusLine();
         }
         catch( IOException e ) {
             e.printStackTrace();
             throw new CommunicationException(e);
+        }
+        finally {
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
         if( status.getStatusCode() == HttpServletResponse.SC_OK ) {
             String json = EntityUtils.toString(response.getEntity());
@@ -1041,8 +1121,6 @@ public class CloudTest {
 
     @Test
     public void fetchWaitingCommands() throws Exception {
-        HttpClient client = getClient();
-
         HttpGet method = new HttpGet(cloudAPI + "/command");
 
         long timestamp = System.currentTimeMillis();
@@ -1055,14 +1133,21 @@ public class CloudTest {
 
         HttpResponse response;
         StatusLine status;
+        HttpClient client = null;
 
         try {
+            client = getClient();
             response = client.execute(method);
             status = response.getStatusLine();
         }
         catch( IOException e ) {
             e.printStackTrace();
             throw new CommunicationException(e);
+        }
+        finally {
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
         if( status.getStatusCode() == HttpServletResponse.SC_OK ) {
             String json = EntityUtils.toString(response.getEntity());

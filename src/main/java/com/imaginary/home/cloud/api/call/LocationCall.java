@@ -302,8 +302,6 @@ public class LocationCall extends APICall {
             HttpProtocolParams.setContentCharset(params, HTTP.UTF_8);
             HttpProtocolParams.setUserAgent(params, "Imaginary Home");
 
-            HttpClient client = new DefaultHttpClient(params);
-
             HttpPut method = new HttpPut(endpoint + "/location/" + locationId);
             long timestamp = System.currentTimeMillis();
 
@@ -318,14 +316,21 @@ public class LocationCall extends APICall {
 
             HttpResponse response;
             StatusLine status;
+            HttpClient client = null;
 
             try {
+                client = new DefaultHttpClient(params);
                 response = client.execute(method);
                 status = response.getStatusLine();
             }
             catch( IOException e ) {
                 e.printStackTrace();
                 throw new CommunicationException(e);
+            }
+            finally {
+                if (client != null) {
+                    client.getConnectionManager().shutdown();
+                }
             }
             if( status.getStatusCode() == HttpServletResponse.SC_OK ) {
                 String json = EntityUtils.toString(response.getEntity());
@@ -364,8 +369,6 @@ public class LocationCall extends APICall {
             HttpProtocolParams.setContentCharset(params, HTTP.UTF_8);
             HttpProtocolParams.setUserAgent(params, "Imaginary Home");
 
-            HttpClient client = new DefaultHttpClient(params);
-
             HttpPost method = new HttpPost(endpoint + "/location");
             long timestamp = System.currentTimeMillis();
 
@@ -381,14 +384,21 @@ public class LocationCall extends APICall {
 
             HttpResponse response;
             StatusLine status;
+            HttpClient client = null;
 
             try {
+                client = new DefaultHttpClient(params);
                 response = client.execute(method);
                 status = response.getStatusLine();
             }
             catch( IOException e ) {
                 e.printStackTrace();
                 throw new CommunicationException(e);
+            }
+            finally {
+                if (client != null) {
+                    client.getConnectionManager().shutdown();
+                }
             }
             if( status.getStatusCode() == HttpServletResponse.SC_CREATED ) {
                 String json = EntityUtils.toString(response.getEntity());

@@ -67,8 +67,10 @@ public class HueMethod {
             wire.debug("");
             wire.debug(">>> [DELETE (" + (new Date()) + ")] -> " + hue.getAPIEndpoint() + resource);
         }
+        HttpClient client = null;
+
         try {
-            HttpClient client = getClient();
+            client = getClient();
             HttpDelete method = new HttpDelete(hue.getAPIEndpoint() + resource);
 
             method.addHeader("Content-Type", "application/json");
@@ -141,6 +143,9 @@ public class HueMethod {
                 wire.debug("<<< [DELETE (" + (new Date()) + ")] -> " + hue.getAPIEndpoint() + resource + " <--------------------------------------------------------------------------------------");
                 wire.debug("");
             }
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
     }
 
@@ -155,8 +160,10 @@ public class HueMethod {
             wire.debug("");
             wire.debug(">>> [GET (" + (new Date()) + ")] -> " + hue.getAPIEndpoint() + resource);
         }
+        HttpClient client = null;
+
         try {
-            HttpClient client = getClient();
+            client = getClient();
             HttpGet method = new HttpGet(hue.getAPIEndpoint() + resource);
 
             method.addHeader("Content-Type", "application/json");
@@ -250,6 +257,9 @@ public class HueMethod {
                 wire.debug("<<< [GET (" + (new Date()) + ")] -> " + hue.getAPIEndpoint() + resource + " <--------------------------------------------------------------------------------------");
                 wire.debug("");
             }
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
     }
 
@@ -288,8 +298,10 @@ public class HueMethod {
             wire.debug("");
             wire.debug(">>> [POST (" + (new Date()) + ")] -> " + hue.getAPIEndpoint() + resource);
         }
+        HttpClient client = null;
+
         try {
-            HttpClient client = getClient();
+            client = getClient();
             HttpPost method = new HttpPost(hue.getAPIEndpoint() + resource);
 
             method.addHeader("Content-Type", "application/json");
@@ -411,6 +423,9 @@ public class HueMethod {
                 wire.debug("<<< [POST (" + (new Date()) + ")] -> " + hue.getAPIEndpoint() + resource + " <--------------------------------------------------------------------------------------");
                 wire.debug("");
             }
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
     }
 
@@ -425,8 +440,10 @@ public class HueMethod {
             wire.debug("");
             wire.debug(">>> [PUT (" + (new Date()) + ")] -> " + hue.getAPIEndpoint() + resource);
         }
+        HttpClient client = null;
+
         try {
-            HttpClient client = getClient();
+            client = getClient();
             HttpPut method = new HttpPut(hue.getAPIEndpoint() + resource);
 
             method.addHeader("Content-Type", "application/json");
@@ -550,6 +567,9 @@ public class HueMethod {
             if( wire.isDebugEnabled() ) {
                 wire.debug("<<< [PUT (" + (new Date()) + ")] -> " + hue.getAPIEndpoint() + resource + " <--------------------------------------------------------------------------------------");
                 wire.debug("");
+            }
+            if (client != null) {
+                client.getConnectionManager().shutdown();
             }
         }
     }
